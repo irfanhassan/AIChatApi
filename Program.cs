@@ -1,10 +1,10 @@
-using AIChatApi.Endpoints;
 using AIChatApi.Services;
 using OpenAI.Chat;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddOpenApi();
+builder.Services.AddControllers();
 
 var apiKey = builder.Configuration["OpenAI:ApiKey"]
     ?? throw new InvalidOperationException("OpenAI:ApiKey is not configured.");
@@ -22,6 +22,6 @@ var app = builder.Build();
 app.MapOpenApi();
 app.UseSwaggerUI(options => options.SwaggerEndpoint("/openapi/v1.json", "AIChatApi v1"));
 
-app.MapChatEndpoints();
+app.MapControllers();
 
 app.Run();
