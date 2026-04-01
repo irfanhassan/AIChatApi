@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "4A/htP6Ueow=",
+  "dgSpecHash": "gAxJ1hezVPU=",
   "success": true,
-  "projectFilePath": "C:\\Source\\AIChatApi\\AIChatApi.csproj",
+  "projectFilePath": "c:\\Source\\AIChatApi\\AIChatApi.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\irfan\\.nuget\\packages\\openai\\2.9.1\\openai.2.9.1.nupkg.sha512",
     "C:\\Users\\irfan\\.nuget\\packages\\system.clientmodel\\1.9.0\\system.clientmodel.1.9.0.nupkg.sha512",

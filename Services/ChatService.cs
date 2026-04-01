@@ -3,7 +3,7 @@ using System.Collections.Concurrent;
 
 namespace AIChatApi.Services;
 
-public class ChatService(IAiClient aiClient) : IChatService
+public class ChatService(IAiClient aiClient, IConfiguration config) : IChatService
 {
     private readonly ConcurrentDictionary<string, Conversation> _conversations = new();
 
@@ -16,10 +16,22 @@ public class ChatService(IAiClient aiClient) : IChatService
 
         conversation.History.Add(("user", request.Message));
 
-        var messages = conversation.History
-            .Select(m => new AiMessage(m.Role, m.Content));
+        // Build message list, prepending system prompt when present
+        var systemPrompt = request.SystemPrompt ?? config["OpenAI:SystemPrompt"];
+        var allMessages = new List<AiMessage>();
+        if (!string.IsNullOrWhiteSpace(systemPrompt))
+            allMessages.Add(new AiMessage("system", systemPrompt));
+        allMessages.AddRange(conversation.History.Select(m => new AiMessage(m.Role, m.Content)));
 
-        var reply = await aiClient.CompleteAsync(messages);
+        // Merge per-request overrides with config defaults
+        var temperature = request.Temperature
+            ?? (float.TryParse(config["OpenAI:Temperature"], out var t) ? t : (float?)null);
+        var topP = request.TopP
+            ?? (float.TryParse(config["OpenAI:TopP"], out var p) ? p : (float?)null);
+        var maxTokens = request.MaxTokens
+            ?? (int.TryParse(config["OpenAI:MaxTokens"], out var m) ? m : (int?)null);
+
+        var reply = await aiClient.CompleteAsync(allMessages, new AiCompletionOptions(temperature, topP, maxTokens));
 
         conversation.History.Add(("assistant", reply));
 

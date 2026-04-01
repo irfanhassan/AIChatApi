@@ -1,6 +1,12 @@
 namespace AIChatApi.Models;
 
-public record ChatRequest(string Message, string? ConversationId = null);
+public record ChatRequest(
+    string Message,
+    string? ConversationId = null,
+    string? SystemPrompt = null,
+    float? Temperature = null,
+    float? TopP = null,
+    int? MaxTokens = null);
 
 public record ChatResponse(string ConversationId, string Reply, DateTime Timestamp);
 

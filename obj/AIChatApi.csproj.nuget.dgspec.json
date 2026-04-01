@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "C:\\Source\\AIChatApi\\AIChatApi.csproj": {}
+    "c:\\Source\\AIChatApi\\AIChatApi.csproj": {}
   },
   "projects": {
-    "C:\\Source\\AIChatApi\\AIChatApi.csproj": {
+    "c:\\Source\\AIChatApi\\AIChatApi.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Source\\AIChatApi\\AIChatApi.csproj",
+        "projectUniqueName": "c:\\Source\\AIChatApi\\AIChatApi.csproj",
         "projectName": "AIChatApi",
-        "projectPath": "C:\\Source\\AIChatApi\\AIChatApi.csproj",
+        "projectPath": "c:\\Source\\AIChatApi\\AIChatApi.csproj",
         "packagesPath": "C:\\Users\\irfan\\.nuget\\packages\\",
-        "outputPath": "C:\\Source\\AIChatApi\\obj\\",
+        "outputPath": "c:\\Source\\AIChatApi\\obj\\",
         "projectStyle": "PackageReference",
         "configFilePaths": [
           "C:\\Users\\irfan\\AppData\\Roaming\\NuGet\\NuGet.Config"
