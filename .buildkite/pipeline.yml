@@ -3,8 +3,8 @@ steps:
     key: build
     commands:
       - export IMAGE_TAG=$BUILDKITE_COMMIT
-      - export ECR_REPO=YOUR_ACCOUNT_ID.dkr.ecr.us-east-1.amazonaws.com/aichatapi
-      - aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin $ECR_REPO
+      - export ECR_REPO=847143401367.dkr.ecr.ap-southeast-2.amazonaws.com/aichatapi
+      - aws ecr get-login-password --region ap-southeast-2 | docker login --username AWS --password-stdin $ECR_REPO
       - docker build -t $ECR_REPO:$IMAGE_TAG -t $ECR_REPO:latest ./AIChatApi
       - docker push $ECR_REPO:$IMAGE_TAG
       - docker push $ECR_REPO:latest
@@ -15,4 +15,4 @@ steps:
     commands:
       - cd infra
       - npm ci
-      - npx cdk deploy --require-approval never --parameters ImageTag=$BUILDKITE_COMMIT
+      - npx cdk deploy --require-approval never --parameters ImageTag=$BUILDKITE_COMMIT --region ap-southeast-2
