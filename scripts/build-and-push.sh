@@ -8,7 +8,7 @@ echo "--- Logging in to ECR"
 aws ecr get-login-password --region ap-southeast-2 | docker login --username AWS --password-stdin "${ECR_REPO}"
 
 echo "--- Building Docker image"
-docker build -t "${ECR_REPO}:${IMAGE_TAG}" -t "${ECR_REPO}:latest" "${BUILDKITE_BUILD_CHECKOUT_PATH}/AIChatApi"
+docker build -t "${ECR_REPO}:${IMAGE_TAG}" -t "${ECR_REPO}:latest" "${BUILDKITE_BUILD_CHECKOUT_PATH}"
 
 echo "--- Pushing Docker image"
 docker push "${ECR_REPO}:${IMAGE_TAG}"
