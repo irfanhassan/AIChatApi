@@ -1,9 +1,9 @@
 steps:
   - label: ":docker: Build & Push"
     key: build
-    command: "bash scripts/build-and-push.sh"
+    command: "bash ${BUILDKITE_BUILD_CHECKOUT_PATH}/scripts/build-and-push.sh"
 
   - label: ":rocket: Deploy to Fargate"
     key: deploy
     depends_on: build
-    command: "bash scripts/deploy.sh"
+    command: "bash ${BUILDKITE_BUILD_CHECKOUT_PATH}/scripts/deploy.sh"
