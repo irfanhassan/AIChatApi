@@ -11,10 +11,7 @@ export class InfraStack extends cdk.Stack {
     super(scope, id, props);
 
     // ECR repo — Buildkite will push images here
-    const repo = new ecr.Repository(this, "AIChatApiRepo", {
-      repositoryName: "aichatapi",
-      removalPolicy: cdk.RemovalPolicy.RETAIN,
-    });
+    const repo = ecr.Repository.fromRepositoryName(this, "AIChatApiRepo", "aichatapi");
 
     // VPC with 2 AZs
     const vpc = new ec2.Vpc(this, "Vpc", { maxAzs: 2 });
