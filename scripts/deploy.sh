@@ -2,7 +2,7 @@
 set -euo pipefail
 
 echo "--- Installing CDK dependencies"
-cd "${BUILDKITE_BUILD_CHECKOUT_PATH}/infra"
+cd "${BUILDKITE_BUILD_CHECKOUT_PATH}/.buildkite"
 npm ci
 
 echo "--- Deploying to Fargate"
