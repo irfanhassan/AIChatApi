@@ -24,7 +24,7 @@ public class OpenAiClient(ChatClient chatClient) : IAiClient
             if (options.MaxTokens is not null)    chatOptions.MaxOutputTokenCount = options.MaxTokens;
         }
 
-        var completion = await chatClient.CompleteChatAsync(openAiMessages, chatOptions, cancellationToken);
+        var completion = await chatClient.CompleteChatAsync(openAiMessages, chatOptions, cancellationToken: cancellationToken);
         return completion.Value.Content[0].Text;
     }
 }
