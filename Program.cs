@@ -1,5 +1,6 @@
 using AIChatApi.Models;
 using AIChatApi.Services;
+using OpenAI;
 using OpenAI.Chat;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -16,7 +17,7 @@ if (string.IsNullOrWhiteSpace(model))
     model = "gpt-4o-mini";
 Console.WriteLine($"[STARTUP] Using model: '{model}'");
 
-builder.Services.AddSingleton(new ChatClient(model: model, apiKey: apiKey));
+builder.Services.AddSingleton(new OpenAIClient(apiKey).GetChatClient(model));
 
 builder.Services.AddSingleton<IAiClient, OpenAiClient>();
 builder.Services.AddSingleton<IChatService, ChatService>();
