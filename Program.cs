@@ -11,8 +11,10 @@ if (string.IsNullOrWhiteSpace(apiKey))
     throw new InvalidOperationException("OpenAI:ApiKey is not configured.");
 
 var model = builder.Configuration["OpenAI:Model"];
+Console.WriteLine($"[STARTUP] Model from config: '{model}'");
 if (string.IsNullOrWhiteSpace(model))
     model = "gpt-4o-mini";
+Console.WriteLine($"[STARTUP] Using model: '{model}'");
 
 builder.Services.AddSingleton(new ChatClient(model: model, apiKey: apiKey));
 
