@@ -6,12 +6,15 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddOpenApi();
 
-var apiKey = builder.Configuration["OpenAI:ApiKey"]
-    ?? throw new InvalidOperationException("OpenAI:ApiKey is not configured.");
+var apiKey = builder.Configuration["OpenAI:ApiKey"];
+if (string.IsNullOrWhiteSpace(apiKey))
+    throw new InvalidOperationException("OpenAI:ApiKey is not configured.");
 
-builder.Services.AddSingleton(new ChatClient(
-    model: builder.Configuration["OpenAI:Model"] ?? "gpt-4o-mini",
-    apiKey: apiKey));
+var model = builder.Configuration["OpenAI:Model"];
+if (string.IsNullOrWhiteSpace(model))
+    model = "gpt-4o-mini";
+
+builder.Services.AddSingleton(new ChatClient(model: model, apiKey: apiKey));
 
 builder.Services.AddSingleton<IAiClient, OpenAiClient>();
 builder.Services.AddSingleton<IChatService, ChatService>();
