@@ -6,7 +6,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddOpenApi();
 builder.Services.AddHttpClient();
 
-var apiKey = builder.Configuration["OpenAI:ApiKey"];
+var apiKey = builder.Configuration["OpenAI:ApiKey"]?.Trim();
 if (string.IsNullOrWhiteSpace(apiKey))
     throw new InvalidOperationException("OpenAI:ApiKey is not configured.");
 
