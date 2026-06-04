@@ -1,9 +1,12 @@
 steps:
   - label: ":docker: Build & Push"
     key: build
-    command: "bash ${BUILDKITE_BUILD_CHECKOUT_PATH}/scripts/build-and-push.sh"
+    command: "bash ${BUILDKITE_BUILD_CHECKOUT_PATH}/scripts/build.sh"
 
   - label: ":rocket: Deploy to Fargate"
     key: deploy
     depends_on: build
-    command: "bash ${BUILDKITE_BUILD_CHECKOUT_PATH}/scripts/deploy.sh"
+    commands:
+      - cd "${BUILDKITE_BUILD_CHECKOUT_PATH}/.buildkite" && npm ci
+      - node --max-old-space-size=1024 node_modules/.bin/tsc
+      - npx cdk deploy --require-approval never --parameters "ImageTag=${BUILDKITE_COMMIT}" --region ap-southeast-2
