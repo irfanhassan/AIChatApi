@@ -1,25 +1,21 @@
 using AIChatApi.Models;
 using AIChatApi.Services;
-using OpenAI;
-using OpenAI.Chat;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddOpenApi();
+builder.Services.AddHttpClient();
 
 var apiKey = builder.Configuration["OpenAI:ApiKey"];
 if (string.IsNullOrWhiteSpace(apiKey))
     throw new InvalidOperationException("OpenAI:ApiKey is not configured.");
 
 var model = builder.Configuration["OpenAI:Model"];
-Console.WriteLine($"[STARTUP] Model from config: '{model}'");
 if (string.IsNullOrWhiteSpace(model))
     model = "gpt-4o-mini";
-Console.WriteLine($"[STARTUP] Using model: '{model}'");
 
-builder.Services.AddSingleton(new OpenAIClient(apiKey).GetChatClient(model));
-
-builder.Services.AddSingleton<IAiClient, OpenAiClient>();
+builder.Services.AddSingleton<IAiClient>(sp =>
+    new OpenAiClient(sp.GetRequiredService<IHttpClientFactory>(), apiKey, model));
 builder.Services.AddSingleton<IChatService, ChatService>();
 
 var app = builder.Build();
