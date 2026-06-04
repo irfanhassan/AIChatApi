@@ -7,6 +7,6 @@ steps:
     key: deploy
     depends_on: build
     commands:
-      - cd "${BUILDKITE_BUILD_CHECKOUT_PATH}/.buildkite" && npm ci
+      - cd "${BUILDKITE_BUILD_CHECKOUT_PATH}/infra" && npm ci
       - node --max-old-space-size=1024 node_modules/.bin/tsc
       - npx cdk deploy --require-approval never --parameters "ImageTag=${BUILDKITE_COMMIT}" --region ap-southeast-2
