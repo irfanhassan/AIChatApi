@@ -1,5 +1,7 @@
+using AIChatApi.Data;
 using AIChatApi.Models;
 using AIChatApi.Services;
+using Anthropic.SDK;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -17,6 +19,17 @@ if (string.IsNullOrWhiteSpace(model))
 builder.Services.AddSingleton<IAiClient>(sp =>
     new OpenAiClient(sp.GetRequiredService<IHttpClientFactory>(), apiKey, model));
 builder.Services.AddSingleton<IChatService, ChatService>();
+
+var anthropicKey = builder.Configuration["Anthropic:ApiKey"]?.Trim();
+if (string.IsNullOrWhiteSpace(anthropicKey))
+    throw new InvalidOperationException("Anthropic:ApiKey is not configured.");
+
+var connectionString = builder.Configuration.GetConnectionString("Postgres")!;
+builder.Services.AddSingleton(new DbConnectionFactory(connectionString));
+builder.Services.AddSingleton(sp =>
+    new EmbeddingService(sp.GetRequiredService<IHttpClientFactory>(), apiKey));
+builder.Services.AddSingleton(new AnthropicClient(anthropicKey));
+builder.Services.AddScoped<RagService>();
 
 var app = builder.Build();
 
@@ -41,6 +54,32 @@ app.MapGet("/api/chat/{conversationId}", (string conversationId, IChatService ch
 })
 .WithName("GetHistory")
 .WithSummary("Get the full message history for a conversation.");
+
+app.MapPost("/api/documents", async (IFormFile file, RagService rag) =>
+{
+    if (file.Length == 0) return Results.BadRequest("Empty file.");
+    using var stream = file.OpenReadStream();
+    var result = await rag.IngestAsync(stream, file.FileName);
+    return Results.Ok(result);
+})
+.WithName("UploadDocument")
+.WithSummary("Upload a PDF to the RAG knowledge base.")
+.DisableAntiforgery();
+
+app.MapGet("/api/documents", async (RagService rag) =>
+    Results.Ok(await rag.ListDocumentsAsync()))
+.WithName("ListDocuments")
+.WithSummary("List all uploaded documents.");
+
+app.MapDelete("/api/documents/{id:guid}", async (Guid id, RagService rag) =>
+    await rag.DeleteDocumentAsync(id) ? Results.NoContent() : Results.NotFound())
+.WithName("DeleteDocument")
+.WithSummary("Delete a document and all its chunks.");
+
+app.MapPost("/api/rag/query", async (RagQueryRequest request, RagService rag) =>
+    Results.Ok(await rag.QueryAsync(request.Question, request.TopK)))
+.WithName("RagQuery")
+.WithSummary("Ask a question against the uploaded documents.");
 
 app.MapGet("/", () => Results.Content("""
 <!DOCTYPE html>
