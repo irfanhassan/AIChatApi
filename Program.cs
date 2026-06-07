@@ -81,6 +81,154 @@ app.MapPost("/api/rag/query", async (RagQueryRequest request, RagService rag) =>
 .WithName("RagQuery")
 .WithSummary("Ask a question against the uploaded documents.");
 
+app.MapGet("/rag", () => Results.Content("""
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>RAG</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: system-ui, sans-serif; background: #f0f2f5; min-height: 100vh; display: flex; justify-content: center; padding: 32px 16px; }
+    #app { width: 100%; max-width: 800px; display: flex; flex-direction: column; gap: 24px; }
+    h1 { font-size: 1.4rem; color: #111; }
+    h2 { font-size: 1rem; color: #444; margin-bottom: 12px; }
+    .card { background: white; border-radius: 12px; padding: 24px; box-shadow: 0 2px 12px rgba(0,0,0,0.08); }
+    .drop-zone { border: 2px dashed #ccc; border-radius: 8px; padding: 32px; text-align: center; cursor: pointer; color: #888; transition: border-color 0.2s; }
+    .drop-zone.dragover { border-color: #0084ff; color: #0084ff; }
+    .drop-zone input { display: none; }
+    .btn { padding: 10px 20px; background: #0084ff; color: white; border: none; border-radius: 8px; font-size: 0.95rem; cursor: pointer; }
+    .btn:disabled { background: #aaa; cursor: default; }
+    .btn-danger { background: #e00; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+    th { text-align: left; padding: 8px 12px; border-bottom: 2px solid #eee; color: #666; }
+    td { padding: 8px 12px; border-bottom: 1px solid #f0f0f0; }
+    .query-row { display: flex; gap: 8px; }
+    #question { flex: 1; padding: 10px 14px; border: 1px solid #ddd; border-radius: 8px; font-size: 1rem; outline: none; }
+    #question:focus { border-color: #0084ff; }
+    #answer { margin-top: 16px; padding: 16px; background: #f8f9fa; border-radius: 8px; white-space: pre-wrap; line-height: 1.6; display: none; }
+    #sources { margin-top: 12px; display: none; }
+    .source { margin-top: 8px; padding: 10px; background: #fff3cd; border-radius: 6px; font-size: 0.85rem; color: #555; white-space: pre-wrap; }
+    .status { font-size: 0.85rem; color: #888; margin-top: 8px; }
+    .error { color: #c00; }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <h1>RAG — Document Q&amp;A</h1>
+
+    <div class="card">
+      <h2>Upload PDF</h2>
+      <div class="drop-zone" id="dropZone">
+        <input type="file" id="fileInput" accept=".pdf"/>
+        Drag &amp; drop a PDF here, or <strong>click to browse</strong>
+      </div>
+      <div class="status" id="uploadStatus"></div>
+    </div>
+
+    <div class="card">
+      <h2>Documents</h2>
+      <table>
+        <thead><tr><th>File</th><th>Uploaded</th><th>Chunks</th><th></th></tr></thead>
+        <tbody id="docList"><tr><td colspan="4" style="color:#aaa">Loading...</td></tr></tbody>
+      </table>
+    </div>
+
+    <div class="card">
+      <h2>Ask a Question</h2>
+      <div class="query-row">
+        <input id="question" placeholder="What is this document about?" />
+        <button class="btn" id="askBtn" onclick="ask()">Ask</button>
+      </div>
+      <div id="answer"></div>
+      <div id="sources"></div>
+    </div>
+  </div>
+
+  <script>
+    const dropZone = document.getElementById('dropZone');
+    const fileInput = document.getElementById('fileInput');
+    const uploadStatus = document.getElementById('uploadStatus');
+
+    dropZone.addEventListener('click', () => fileInput.click());
+    dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('dragover'); });
+    dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+    dropZone.addEventListener('drop', e => { e.preventDefault(); dropZone.classList.remove('dragover'); uploadFile(e.dataTransfer.files[0]); });
+    fileInput.addEventListener('change', () => uploadFile(fileInput.files[0]));
+
+    async function uploadFile(file) {
+      if (!file) return;
+      uploadStatus.textContent = `Uploading ${file.name}...`;
+      uploadStatus.className = 'status';
+      const form = new FormData();
+      form.append('file', file);
+      try {
+        const res = await fetch('/api/documents', { method: 'POST', body: form });
+        if (!res.ok) throw new Error(await res.text());
+        const data = await res.json();
+        uploadStatus.textContent = `✓ Uploaded — ${data.chunkCount} chunks indexed.`;
+        loadDocs();
+      } catch (err) {
+        uploadStatus.textContent = `Error: ${err.message}`;
+        uploadStatus.className = 'status error';
+      }
+    }
+
+    async function loadDocs() {
+      const res = await fetch('/api/documents');
+      const docs = await res.json();
+      const tbody = document.getElementById('docList');
+      if (docs.length === 0) { tbody.innerHTML = '<tr><td colspan="4" style="color:#aaa">No documents uploaded yet.</td></tr>'; return; }
+      tbody.innerHTML = docs.map(d => `
+        <tr>
+          <td>${d.fileName}</td>
+          <td>${new Date(d.uploadedAt).toLocaleString()}</td>
+          <td>${d.chunkCount}</td>
+          <td><button class="btn btn-danger" onclick="deleteDoc('${d.id}')">Delete</button></td>
+        </tr>`).join('');
+    }
+
+    async function deleteDoc(id) {
+      await fetch('/api/documents/' + id, { method: 'DELETE' });
+      loadDocs();
+    }
+
+    async function ask() {
+      const question = document.getElementById('question').value.trim();
+      if (!question) return;
+      const btn = document.getElementById('askBtn');
+      const answerEl = document.getElementById('answer');
+      const sourcesEl = document.getElementById('sources');
+      btn.disabled = true;
+      answerEl.style.display = 'block';
+      answerEl.textContent = 'Thinking...';
+      sourcesEl.style.display = 'none';
+      try {
+        const res = await fetch('/api/rag/query', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ question, topK: 5 })
+        });
+        if (!res.ok) throw new Error(await res.text());
+        const data = await res.json();
+        answerEl.textContent = data.answer;
+        sourcesEl.style.display = 'block';
+        sourcesEl.innerHTML = '<strong style="font-size:0.85rem;color:#666">Sources</strong>' +
+          data.sources.map(s => `<div class="source">${s.substring(0, 300)}${s.length > 300 ? '…' : ''}</div>`).join('');
+      } catch (err) {
+        answerEl.textContent = 'Error: ' + err.message;
+      } finally {
+        btn.disabled = false;
+      }
+    }
+
+    loadDocs();
+  </script>
+</body>
+</html>
+""", "text/html"));
+
 app.MapGet("/", () => Results.Content("""
 <!DOCTYPE html>
 <html lang="en">
