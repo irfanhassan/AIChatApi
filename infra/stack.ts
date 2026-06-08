@@ -21,6 +21,12 @@ export class InfraStack extends cdk.Stack {
       "/aichatapi/prod/openai-api-key"
     );
 
+    const anthropicSecret = secretsmanager.Secret.fromSecretNameV2(
+      this,
+      "AnthropicSecret",
+      "/aichatapi/prod/anthropic-api-key"
+    );
+
     const imageTag = new cdk.CfnParameter(this, "ImageTag", {
       type: "String",
       default: "latest",
@@ -39,7 +45,8 @@ export class InfraStack extends cdk.Stack {
         OpenAI__Model: "gpt-4o-mini",
       },
       secrets: {
-        OpenAI__ApiKey: ecs.Secret.fromSecretsManager(openAiSecret),
+        OpenAI__ApiKey:    ecs.Secret.fromSecretsManager(openAiSecret),
+        Anthropic__ApiKey: ecs.Secret.fromSecretsManager(anthropicSecret),
       },
       logging: ecs.LogDrivers.awsLogs({ streamPrefix: "aichatapi" }),
     });

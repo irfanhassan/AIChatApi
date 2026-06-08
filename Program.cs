@@ -1,4 +1,3 @@
-using AIChatApi.Data;
 using AIChatApi.Models;
 using AIChatApi.Services;
 using Anthropic.SDK;
@@ -24,12 +23,11 @@ var anthropicKey = builder.Configuration["Anthropic:ApiKey"]?.Trim();
 if (string.IsNullOrWhiteSpace(anthropicKey))
     throw new InvalidOperationException("Anthropic:ApiKey is not configured.");
 
-var connectionString = builder.Configuration.GetConnectionString("Postgres")!;
-builder.Services.AddSingleton(new DbConnectionFactory(connectionString));
 builder.Services.AddSingleton(sp =>
     new EmbeddingService(sp.GetRequiredService<IHttpClientFactory>(), apiKey));
 builder.Services.AddSingleton(new AnthropicClient(anthropicKey));
-builder.Services.AddScoped<RagService>();
+builder.Services.AddSingleton<VectorStore>();
+builder.Services.AddSingleton<RagService>();
 
 var app = builder.Build();
 
@@ -66,13 +64,13 @@ app.MapPost("/api/documents", async (IFormFile file, RagService rag) =>
 .WithSummary("Upload a PDF to the RAG knowledge base.")
 .DisableAntiforgery();
 
-app.MapGet("/api/documents", async (RagService rag) =>
-    Results.Ok(await rag.ListDocumentsAsync()))
+app.MapGet("/api/documents", (RagService rag) =>
+    Results.Ok(rag.ListDocuments()))
 .WithName("ListDocuments")
 .WithSummary("List all uploaded documents.");
 
-app.MapDelete("/api/documents/{id:guid}", async (Guid id, RagService rag) =>
-    await rag.DeleteDocumentAsync(id) ? Results.NoContent() : Results.NotFound())
+app.MapDelete("/api/documents/{id:guid}", (Guid id, RagService rag) =>
+    rag.DeleteDocument(id) ? Results.NoContent() : Results.NotFound())
 .WithName("DeleteDocument")
 .WithSummary("Delete a document and all its chunks.");
 

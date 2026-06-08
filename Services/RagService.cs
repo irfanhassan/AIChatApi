@@ -1,15 +1,12 @@
-using AIChatApi.Data;
 using AIChatApi.Models;
 using Anthropic.SDK;
 using Anthropic.SDK.Constants;
 using Anthropic.SDK.Messaging;
-using Dapper;
-using Pgvector;
 using UglyToad.PdfPig;
 
 namespace AIChatApi.Services;
 
-public class RagService(DbConnectionFactory db, EmbeddingService embeddingService, AnthropicClient anthropic)
+public class RagService(VectorStore store, EmbeddingService embeddingService, AnthropicClient anthropic)
 {
     private const int ChunkSize = 500;
     private const int ChunkOverlap = 50;
@@ -20,31 +17,17 @@ public class RagService(DbConnectionFactory db, EmbeddingService embeddingServic
         var chunks = ChunkText(text);
         var embeddings = await embeddingService.EmbedBatchAsync(chunks, cancellationToken);
 
-        using var conn = db.Create();
-
-        var documentId = await conn.ExecuteScalarAsync<Guid>(
-            "INSERT INTO documents (file_name) VALUES (@fileName) RETURNING id",
-            new { fileName });
-
+        var documentId = store.AddDocument(fileName);
         for (var i = 0; i < chunks.Count; i++)
-        {
-            await conn.ExecuteAsync(
-                "INSERT INTO document_chunks (document_id, chunk_index, content, embedding) VALUES (@documentId, @chunkIndex, @content, @embedding)",
-                new { documentId, chunkIndex = i, content = chunks[i], embedding = new Vector(embeddings[i]) });
-        }
+            store.AddChunk(documentId, i, chunks[i], embeddings[i]);
 
         return new UploadDocumentResponse(documentId, fileName, chunks.Count);
     }
 
     public async Task<RagQueryResponse> QueryAsync(string question, int topK = 5, CancellationToken cancellationToken = default)
     {
-        var queryEmbedding = new Vector(await embeddingService.EmbedAsync(question, cancellationToken));
-
-        using var conn = db.Create();
-
-        var chunks = (await conn.QueryAsync<string>(
-            "SELECT content FROM document_chunks ORDER BY embedding <=> @embedding LIMIT @topK",
-            new { embedding = queryEmbedding, topK })).ToList();
+        var queryEmbedding = await embeddingService.EmbedAsync(question, cancellationToken);
+        var chunks = store.Search(queryEmbedding, topK);
 
         if (chunks.Count == 0)
             return new RagQueryResponse("No relevant documents found.", []);
@@ -70,20 +53,9 @@ public class RagService(DbConnectionFactory db, EmbeddingService embeddingServic
         return new RagQueryResponse(answer, chunks);
     }
 
-    public async Task<List<DocumentSummary>> ListDocumentsAsync(CancellationToken cancellationToken = default)
-    {
-        using var conn = db.Create();
-        var rows = await conn.QueryAsync<(Guid Id, string FileName, DateTime UploadedAt, int ChunkCount)>(
-            "SELECT d.id, d.file_name, d.uploaded_at, COUNT(c.id)::int AS chunk_count FROM documents d LEFT JOIN document_chunks c ON c.document_id = d.id GROUP BY d.id");
-        return rows.Select(r => new DocumentSummary(r.Id, r.FileName, r.UploadedAt, r.ChunkCount)).ToList();
-    }
+    public List<DocumentSummary> ListDocuments() => store.ListDocuments();
 
-    public async Task<bool> DeleteDocumentAsync(Guid id, CancellationToken cancellationToken = default)
-    {
-        using var conn = db.Create();
-        var affected = await conn.ExecuteAsync("DELETE FROM documents WHERE id = @id", new { id });
-        return affected > 0;
-    }
+    public bool DeleteDocument(Guid id) => store.DeleteDocument(id);
 
     private static string ExtractText(Stream pdfStream)
     {
