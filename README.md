@@ -1,182 +1,117 @@
 # AIChatApi
 
-ASP.NET Core 10 REST API providing a stateful chat interface backed by OpenAI. Deployed to AWS Fargate via Buildkite CI/CD and AWS CDK.
+An ASP.NET Core 10 API with two features built on a shared AI provider abstraction:
+
+- **Chat** — stateful multi-turn conversations powered by OpenAI GPT-4o-mini
+- **RAG** — upload PDFs, ask questions, get answers grounded in document content using Claude
 
 ---
 
-## Architecture Overview
+## Architecture
+
+### Shared AI abstraction
+
+Both features depend on `IAiClient` — a single interface that decouples the application from any specific AI provider:
 
 ```
-Developer pushes code
-        │
-        ▼
-   Buildkite Agent (EC2)
-        │
-        ├─── Step 1: scripts/build.sh
-        │         Build Docker image → push to ECR
-        │
-        └─── Step 2: CDK deploy (inline in pipeline.yml)
-                  Update ECS task definition → rolling restart
-                         │
-                         ▼
-                ECS Fargate Task
-             (public IP, port 8080)
-                         │
-                         ▼
-                  OpenAI API (HTTPS)
+IAiClient
+    ├── OpenAiClient      → GPT-4o-mini  (used by Chat)
+    └── AnthropicAiClient → Claude       (used by RAG)
 ```
+
+Swapping providers requires no changes to `ChatService` or `RagService`.
+
+### Chat flow
+
+```
+POST /api/chat
+      │
+      ▼
+ChatService
+  - looks up or creates conversation
+  - maintains full history in memory
+      │
+      ▼
+OpenAiClient → OpenAI /v1/chat/completions
+      │
+      ▼
+reply stored in history, returned to caller
+```
+
+### RAG flow
+
+```
+POST /api/documents (PDF upload)
+      │
+      ├── PdfPig extracts text
+      ├── text split into 500-word chunks (50-word overlap)
+      ├── OpenAI text-embedding-3-small → 1536-dim vectors
+      └── Qdrant Cloud stores vectors + chunk text
+
+POST /api/rag/query
+      │
+      ├── question embedded via OpenAI text-embedding-3-small
+      ├── Qdrant cosine similarity search → top 5 chunks
+      └── AnthropicAiClient → Claude answers from chunks only
+```
+
+**Why two AI providers?**
+OpenAI is used for embeddings — Anthropic has no embedding model. Claude is used for answer generation because it follows grounding instructions more strictly, reducing hallucination beyond the source material.
 
 ---
 
-## Repository Structure
+## Project structure
 
 ```
 AIChatApi/
-├── AIChatApi.csproj          # .NET project
-├── Program.cs                # App entry point, DI wiring, all endpoints
-├── Dockerfile                # Multi-stage build
-├── Services/
-│   ├── IAiClient.cs          # AI provider abstraction
-│   ├── OpenAiClient.cs       # OpenAI implementation via raw HttpClient
-│   └── ChatService.cs        # Conversation state (in-memory)
+├── Program.cs                   # Endpoints and DI wiring
+├── AIChatApi.csproj             # Package references
+├── Dockerfile                   # Multi-stage build
+├── appsettings.json             # Config keys (values via secrets or env vars)
+│
 ├── Models/
-│   └── ChatModels.cs         # Request/response records
-├── scripts/
-│   └── build.sh              # CI step 1: build and push Docker image to ECR
-└── .buildkite/
-    ├── pipeline.yml          # Buildkite pipeline (2 steps)
-    ├── bin/
-    │   └── buildkite.ts      # CDK app entry point
-    ├── lib/
-    │   └── stack.ts          # CDK stack: VPC, ECS Fargate, Secrets
-    ├── cdk.json              # CDK config (app: node dist/bin/buildkite.js)
-    └── tsconfig.json         # TypeScript compiler config (commonjs, outDir: dist)
+│   ├── ChatModels.cs            # ChatRequest, ChatResponse, Conversation
+│   └── RagModels.cs            # UploadDocumentResponse, RagQueryRequest/Response
+│
+├── Services/
+│   ├── IAiClient.cs             # Provider abstraction (AiMessage, AiCompletionOptions)
+│   ├── OpenAiClient.cs          # IAiClient → OpenAI chat completions (raw HttpClient)
+│   ├── AnthropicAiClient.cs     # IAiClient → Claude via Anthropic.SDK
+│   ├── IChatService.cs          # Chat service abstraction
+│   ├── ChatService.cs           # Conversation state + delegates to IAiClient
+│   ├── EmbeddingService.cs      # OpenAI /v1/embeddings (batched)
+│   ├── VectorStore.cs           # Qdrant: create collection, upsert, search, delete
+│   └── RagService.cs            # PDF ingestion + question answering
+│
+├── infra/
+│   ├── build.sh                 # CI step 1: Docker build and push to ECR
+│   ├── stack.ts                 # CDK: Fargate, security group, Secrets Manager refs
+│   ├── bin/app.ts               # CDK app entry point
+│   ├── cdk.json                 # CDK config (app: node dist/bin/app.js)
+│   ├── package.json             # CDK dependencies
+│   └── tsconfig.json            # TypeScript config (commonjs, outDir: dist)
+│
+└── buildkite/
+    └── pipeline.yml             # Two-step pipeline: build then deploy
 ```
 
 ---
 
-## Build Pipeline
+## API endpoints
 
-Every push triggers the Buildkite pipeline defined in `.buildkite/pipeline.yml`. Two sequential steps run on a self-hosted Buildkite agent (EC2 instance).
+### Chat
 
-### `.buildkite/pipeline.yml`
-
-```yaml
-steps:
-  - label: ":docker: Build & Push"
-    key: build
-    command: "bash ${BUILDKITE_BUILD_CHECKOUT_PATH}/scripts/build.sh"
-
-  - label: ":rocket: Deploy to Fargate"
-    key: deploy
-    depends_on: build
-    commands:
-      - cd "${BUILDKITE_BUILD_CHECKOUT_PATH}/.buildkite" && npm ci
-      - node --max-old-space-size=1024 node_modules/.bin/tsc
-      - npx cdk deploy --require-approval never --parameters "ImageTag=${BUILDKITE_COMMIT}" --region ap-southeast-2
-```
-
-`depends_on: build` ensures deploy only runs if the build step succeeded. The deploy step is inlined directly — no separate deploy script needed.
-
----
-
-### Step 1 — `scripts/build.sh`
-
-Builds the Docker image and pushes it to Amazon ECR.
-
-1. **Creates the ECR repository** if it does not already exist.
-2. **Authenticates Docker** with ECR using a temporary token from `aws ecr get-login-password`.
-3. **Builds the Docker image** from the `Dockerfile`, tagged with both the git commit SHA and `latest`.
-4. **Pushes both tags** to ECR.
-
-The commit SHA tag is critical — it lets the deploy step reference exactly the image that was just built rather than a potentially stale `latest`.
-
-| Variable | Source | Purpose |
+| Method | Path | Description |
 |---|---|---|
-| `BUILDKITE_COMMIT` | Buildkite | Git SHA used as the immutable image tag |
-| `BUILDKITE_BUILD_CHECKOUT_PATH` | Buildkite | Absolute path to the checked-out repo on the agent |
+| `GET` | `/` | Browser chat UI |
+| `POST` | `/api/chat` | Send a message, receive a reply |
+| `GET` | `/api/chat/{conversationId}` | Get full conversation history |
 
----
-
-### Step 2 — CDK Deploy (inline)
-
-Compiles the CDK TypeScript code and deploys the updated stack to AWS.
-
-1. **`npm ci`** — installs exact CDK dependencies from `package-lock.json` for reproducible builds.
-2. **`tsc`** — compiles `stack.ts` and `buildkite.ts` to JavaScript in `dist/`. The `--max-old-space-size=1024` cap prevents out-of-memory crashes on the `t3.small` agent.
-3. **`cdk deploy`** — compares the desired stack state against what is currently deployed in CloudFormation and applies the diff. Passes `ImageTag=$BUILDKITE_COMMIT` so ECS pulls the exact image from step 1.
-
-`--require-approval never` skips the manual confirmation prompt required for unattended CI execution.
-
----
-
-### `.buildkite/bin/buildkite.ts` — CDK App Entry Point
-
-Instantiates the stack and pins it to a specific AWS account and region:
-
-```typescript
-const app = new cdk.App();
-new InfraStack(app, 'InfraStack', {
-  env: { account: '847143401367', region: 'ap-southeast-2' },
-});
-```
-
-Hardcoding account and region prevents accidental cross-account deploys.
-
----
-
-### `.buildkite/lib/stack.ts` — CDK Infrastructure Stack
-
-Defines all AWS infrastructure. Executed by `cdk deploy` after TypeScript compilation.
-
-**Resources:**
-
-| Resource | Details |
-|---|---|
-| VPC | Default VPC (looked up, not created) |
-| ECS Cluster | Fargate — serverless, no EC2 nodes to manage |
-| ECR Repository | Imported by name (`aichatapi`) — not created here to avoid conflicts with `build.sh` |
-| Fargate Service | 512 CPU, 1024 MB RAM, 1 task, public IP assigned directly |
-| Security Group | Inbound TCP 8080 open to the internet |
-| Secrets Manager | `/aichatapi/prod/openai-api-key` injected as `OpenAI__ApiKey` at runtime |
-
-**No load balancer** — the Fargate task is assigned a public IP directly on port 8080. This keeps the setup simple and avoids ALB costs. The trade-off is the IP changes on every task restart.
-
-**Image tag parameter:**
-
-```typescript
-const imageTag = new cdk.CfnParameter(this, "ImageTag", {
-  type: "String",
-  default: "latest",
-});
-```
-
-Set at deploy time to the git commit SHA, ensuring ECS pulls exactly the image built in step 1.
-
-**Environment variables injected into the container:**
-
-| Variable | Value | Source |
-|---|---|---|
-| `ASPNETCORE_ENVIRONMENT` | `Production` | Hardcoded in stack |
-| `OpenAI__Model` | `gpt-4o-mini` | Hardcoded in stack |
-| `OpenAI__ApiKey` | *(secret)* | AWS Secrets Manager |
-
-> ASP.NET Core maps `__` in environment variable names to `:` in configuration. So `OpenAI__ApiKey` is read as `OpenAI:ApiKey` inside the app.
-
----
-
-## API Endpoints
-
-### `GET /`
-HTML chat UI — open in a browser to chat directly.
-
-### `POST /api/chat`
-Send a message. Omit `conversationId` to start a new conversation.
-
+**POST /api/chat**
 ```json
 {
-  "message": "Hello",
-  "conversationId": "optional-existing-id",
+  "message": "What is the capital of France?",
+  "conversationId": "omit to start a new conversation",
   "systemPrompt": "optional override",
   "temperature": 0.7,
   "topP": 1.0,
@@ -184,59 +119,106 @@ Send a message. Omit `conversationId` to start a new conversation.
 }
 ```
 
-Response:
+### RAG
+
+| Method | Path | Description |
+|---|---|---|
+| `GET` | `/rag` | Browser RAG UI — upload and query |
+| `POST` | `/api/documents` | Upload a PDF (`multipart/form-data`) |
+| `GET` | `/api/documents` | List uploaded documents |
+| `DELETE` | `/api/documents/{id}` | Delete a document and its vectors |
+| `POST` | `/api/rag/query` | Ask a question against uploaded documents |
+
+**POST /api/rag/query**
 ```json
 {
-  "conversationId": "d8458211-0af8-4d40-ae53-aa4b25228656",
-  "reply": "Hello! How can I assist you today?",
-  "timestamp": "2026-06-04T07:59:10.959Z"
+  "question": "What is the refund policy?",
+  "topK": 5
 }
 ```
 
-### `GET /api/chat/{conversationId}`
-Returns the full message history for a conversation.
-
 ---
 
-## Prerequisites
+## Running locally
 
-Before the pipeline can run for the first time:
+### Prerequisites
+- .NET 10 SDK
+- OpenAI API key — [platform.openai.com](https://platform.openai.com)
+- Anthropic API key — [console.anthropic.com](https://console.anthropic.com)
+- Qdrant Cloud cluster — free at [cloud.qdrant.io](https://cloud.qdrant.io)
 
-**1. Buildkite agent (EC2)**
-The agent instance needs: Buildkite agent, Docker, AWS CLI, Node.js, npm. Its IAM role needs permissions for ECR, ECS, CloudFormation, S3, Secrets Manager, IAM, and SSM.
+### Setup
 
-**2. CDK bootstrap** — run once per account/region:
-```bash
-cdk bootstrap aws://847143401367/ap-southeast-2
-```
-
-**3. OpenAI API key in Secrets Manager:**
-```bash
-aws secretsmanager put-secret-value \
-  --secret-id /aichatapi/prod/openai-api-key \
-  --secret-string "sk-proj-your-key-here" \
-  --region ap-southeast-2
-```
-> Use `--secret-string` directly or the AWS Console. Do not use `echo` — it appends a newline that corrupts the Authorization header.
-
----
-
-## Finding the Public IP After Deploy
-
-The Fargate task IP changes on every restart. To find it:
-
-**AWS Console:** ECS → Clusters → select cluster → Tasks tab → click the task → Network section → Public IP.
-
-**AWS CLI:**
 ```powershell
-$eni = aws ecs describe-tasks `
-  --cluster <cluster-name> --tasks <task-id> --region ap-southeast-2 `
-  --query "tasks[0].attachments[0].details[?name=='networkInterfaceId'].value" `
-  --output text
+cd AIChatApi
 
-aws ec2 describe-network-interfaces --network-interface-ids $eni `
-  --region ap-southeast-2 `
-  --query "NetworkInterfaces[0].Association.PublicIp" --output text
+dotnet user-secrets set "OpenAI:ApiKey"   "sk-..."
+dotnet user-secrets set "Anthropic:ApiKey" "sk-ant-..."
+dotnet user-secrets set "Qdrant:Url"      "https://your-cluster.qdrant.io"
+dotnet user-secrets set "Qdrant:ApiKey"   "your-qdrant-key"
+
+dotnet run
 ```
 
-Then open `http://<public-ip>:8080` in your browser.
+- Chat UI: `http://localhost:5000`
+- RAG UI: `http://localhost:5000/rag`
+
+---
+
+## Deployment (AWS Fargate)
+
+Every push triggers the Buildkite pipeline defined in `buildkite/pipeline.yml`.
+
+### Step 1 — `infra/build.sh`
+Builds the Docker image, tags it with the git commit SHA, and pushes to Amazon ECR.
+
+### Step 2 — CDK deploy (inline)
+Compiles `infra/stack.ts` and runs `cdk deploy`, updating the ECS task definition to the new image tag.
+
+### Infrastructure (`infra/stack.ts`)
+- Default VPC, ECS Fargate cluster
+- Single Fargate task (512 CPU / 1024 MB), public IP assigned directly — no load balancer
+- Port 8080 open to the internet via security group
+- Secrets injected from AWS Secrets Manager at runtime:
+
+| Secret path | Env var | Purpose |
+|---|---|---|
+| `/aichatapi/prod/openai-api-key` | `OpenAI__ApiKey` | Chat + embeddings |
+| `/aichatapi/prod/anthropic-api-key` | `Anthropic__ApiKey` | RAG answer generation |
+
+> ASP.NET Core maps `__` in env var names to `:` in config, so `OpenAI__ApiKey` is read as `OpenAI:ApiKey`.
+
+### First-time setup
+
+```bash
+# Bootstrap CDK once per account/region
+cdk bootstrap aws://847143401367/ap-southeast-2
+
+# Store secrets (use --secret-string directly, not echo — avoids trailing newline)
+aws secretsmanager create-secret --name /aichatapi/prod/openai-api-key \
+  --secret-string "sk-..." --region ap-southeast-2
+
+aws secretsmanager create-secret --name /aichatapi/prod/anthropic-api-key \
+  --secret-string "sk-ant-..." --region ap-southeast-2
+```
+
+### Finding the public IP
+
+The Fargate task IP changes on every restart. Find it in the AWS Console:
+**ECS → Clusters → select cluster → Tasks → click task → Network → Public IP**
+
+Then open `http://<ip>:8080` or `http://<ip>:8080/rag`.
+
+---
+
+## Design decisions
+
+**`IAiClient` abstraction** — both Chat and RAG go through the same interface. Adding a new provider (Bedrock, Gemini) means implementing one interface and changing one DI registration.
+
+**No load balancer** — direct public IP on the Fargate task saves ~$20/month. Trade-off: IP changes on task restart.
+
+**Qdrant Cloud free tier** — 1GB free, persistent across restarts. In production, RDS pgvector or Aurora pgvector would keep everything inside AWS with no third-party dependency.
+
+**In-memory conversation history** — lost on container restart. For production, persist to DynamoDB or Redis.
+
+**Raw HttpClient for OpenAI** — the OpenAI .NET SDK v2.9.1 had a bug where the model name was not serialised into requests when `ChatCompletionOptions` was null. Replaced with direct HTTP calls.

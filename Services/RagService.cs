@@ -1,12 +1,9 @@
 using AIChatApi.Models;
-using Anthropic.SDK;
-using Anthropic.SDK.Constants;
-using Anthropic.SDK.Messaging;
 using UglyToad.PdfPig;
 
 namespace AIChatApi.Services;
 
-public class RagService(VectorStore store, EmbeddingService embeddingService, AnthropicClient anthropic)
+public class RagService(VectorStore store, EmbeddingService embeddingService, IAiClient aiClient)
 {
     private const int ChunkSize = 500;
     private const int ChunkOverlap = 50;
@@ -17,9 +14,8 @@ public class RagService(VectorStore store, EmbeddingService embeddingService, An
         var chunks = ChunkText(text);
         var embeddings = await embeddingService.EmbedBatchAsync(chunks, cancellationToken);
 
-        var documentId = store.AddDocument(fileName);
-        for (var i = 0; i < chunks.Count; i++)
-            store.AddChunk(documentId, i, chunks[i], embeddings[i]);
+        var documentId = await store.AddDocumentAsync(fileName, cancellationToken);
+        await store.AddChunksAsync(documentId, chunks, embeddings, cancellationToken);
 
         return new UploadDocumentResponse(documentId, fileName, chunks.Count);
     }
@@ -27,35 +23,26 @@ public class RagService(VectorStore store, EmbeddingService embeddingService, An
     public async Task<RagQueryResponse> QueryAsync(string question, int topK = 5, CancellationToken cancellationToken = default)
     {
         var queryEmbedding = await embeddingService.EmbedAsync(question, cancellationToken);
-        var chunks = store.Search(queryEmbedding, topK);
+        var chunks = await store.SearchAsync(queryEmbedding, topK, cancellationToken);
 
         if (chunks.Count == 0)
             return new RagQueryResponse("No relevant documents found.", []);
 
         var context = string.Join("\n\n---\n\n", chunks);
-        var prompt = $"""
-            Answer the question using only the context below. If the answer is not in the context, say so.
-
-            Context:
-            {context}
-
-            Question: {question}
-            """;
-
-        var response = await anthropic.Messages.GetClaudeMessageAsync(new MessageParameters
+        var messages = new[]
         {
-            Model = AnthropicModels.Claude46Sonnet,
-            MaxTokens = 1024,
-            Messages = [new Message { Role = RoleType.User, Content = [new TextContent { Text = prompt }] }]
-        }, cancellationToken);
+            new AiMessage("system", $"Answer the question using only the context below. If the answer is not in the context, say so.\n\nContext:\n{context}"),
+            new AiMessage("user", question)
+        };
 
-        var answer = response.Content.OfType<TextContent>().FirstOrDefault()?.Text ?? "";
+        var answer = await aiClient.CompleteAsync(messages, cancellationToken: cancellationToken);
         return new RagQueryResponse(answer, chunks);
     }
 
     public List<DocumentSummary> ListDocuments() => store.ListDocuments();
 
-    public bool DeleteDocument(Guid id) => store.DeleteDocument(id);
+    public async Task<bool> DeleteDocumentAsync(Guid id, CancellationToken ct = default) =>
+        await store.DeleteDocumentAsync(id, ct);
 
     private static string ExtractText(Stream pdfStream)
     {

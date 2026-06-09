@@ -1,6 +1,7 @@
 using AIChatApi.Models;
 using AIChatApi.Services;
 using Anthropic.SDK;
+using Qdrant.Client;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -23,11 +24,23 @@ var anthropicKey = builder.Configuration["Anthropic:ApiKey"]?.Trim();
 if (string.IsNullOrWhiteSpace(anthropicKey))
     throw new InvalidOperationException("Anthropic:ApiKey is not configured.");
 
+var qdrantUrl = builder.Configuration["Qdrant:Url"]?.Trim();
+var qdrantKey = builder.Configuration["Qdrant:ApiKey"]?.Trim();
+if (string.IsNullOrWhiteSpace(qdrantUrl))
+    throw new InvalidOperationException("Qdrant:Url is not configured.");
+if (string.IsNullOrWhiteSpace(qdrantKey))
+    throw new InvalidOperationException("Qdrant:ApiKey is not configured.");
+
 builder.Services.AddSingleton(sp =>
     new EmbeddingService(sp.GetRequiredService<IHttpClientFactory>(), apiKey));
 builder.Services.AddSingleton(new AnthropicClient(anthropicKey));
+builder.Services.AddSingleton<AnthropicAiClient>();
+builder.Services.AddSingleton(new QdrantClient(new Uri(qdrantUrl), apiKey: qdrantKey));
 builder.Services.AddSingleton<VectorStore>();
-builder.Services.AddSingleton<RagService>();
+builder.Services.AddSingleton(sp => new RagService(
+    sp.GetRequiredService<VectorStore>(),
+    sp.GetRequiredService<EmbeddingService>(),
+    sp.GetRequiredService<AnthropicAiClient>()));
 
 var app = builder.Build();
 
@@ -69,8 +82,8 @@ app.MapGet("/api/documents", (RagService rag) =>
 .WithName("ListDocuments")
 .WithSummary("List all uploaded documents.");
 
-app.MapDelete("/api/documents/{id:guid}", (Guid id, RagService rag) =>
-    rag.DeleteDocument(id) ? Results.NoContent() : Results.NotFound())
+app.MapDelete("/api/documents/{id:guid}", async (Guid id, RagService rag) =>
+    await rag.DeleteDocumentAsync(id) ? Results.NoContent() : Results.NotFound())
 .WithName("DeleteDocument")
 .WithSummary("Delete a document and all its chunks.");
 

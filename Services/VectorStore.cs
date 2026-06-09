@@ -1,53 +1,79 @@
 using System.Collections.Concurrent;
 using AIChatApi.Models;
+using Qdrant.Client;
+using Qdrant.Client.Grpc;
 
 namespace AIChatApi.Services;
 
 public class VectorStore
 {
-    private record ChunkRecord(Guid Id, Guid DocumentId, int ChunkIndex, string Content, float[] Embedding);
-    private record DocumentRecord(Guid Id, string FileName, DateTime UploadedAt);
+    private const string Collection = "chunks";
+    private const ulong VectorSize = 1536;
 
-    private readonly ConcurrentDictionary<Guid, DocumentRecord> _documents = new();
-    private readonly ConcurrentBag<ChunkRecord> _chunks = new();
+    private readonly QdrantClient _client;
+    private readonly ConcurrentDictionary<Guid, (string FileName, DateTime UploadedAt)> _documents = new();
 
-    public Guid AddDocument(string fileName)
+    public VectorStore(QdrantClient client)
     {
-        var id = Guid.NewGuid();
-        _documents[id] = new DocumentRecord(id, fileName, DateTime.UtcNow);
-        return id;
+        _client = client;
+        EnsureCollectionAsync().GetAwaiter().GetResult();
     }
 
-    public void AddChunk(Guid documentId, int chunkIndex, string content, float[] embedding) =>
-        _chunks.Add(new ChunkRecord(Guid.NewGuid(), documentId, chunkIndex, content, embedding));
+    public async Task<Guid> AddDocumentAsync(string fileName, CancellationToken ct = default)
+    {
+        var id = Guid.NewGuid();
+        _documents[id] = (fileName, DateTime.UtcNow);
+        return await Task.FromResult(id);
+    }
 
-    public List<string> Search(float[] queryEmbedding, int topK) =>
-        _chunks
-            .Select(c => (c.Content, Score: CosineSimilarity(c.Embedding, queryEmbedding)))
-            .OrderByDescending(x => x.Score)
-            .Take(topK)
-            .Select(x => x.Content)
-            .ToList();
+    public async Task AddChunksAsync(Guid documentId, List<string> contents, List<float[]> embeddings, CancellationToken ct = default)
+    {
+        var points = contents.Select((content, i) => new PointStruct
+        {
+            Id = Guid.NewGuid(),
+            Vectors = embeddings[i],
+            Payload =
+            {
+                ["document_id"] = documentId.ToString(),
+                ["chunk_index"]  = i,
+                ["content"]      = content,
+            }
+        }).ToList();
+
+        await _client.UpsertAsync(Collection, points, cancellationToken: ct);
+    }
+
+    public async Task<List<string>> SearchAsync(float[] queryEmbedding, int topK, CancellationToken ct = default)
+    {
+        var results = await _client.SearchAsync(Collection, queryEmbedding, limit: (ulong)topK, cancellationToken: ct);
+        return results.Select(r => r.Payload["content"].StringValue).ToList();
+    }
 
     public List<DocumentSummary> ListDocuments() =>
-        _documents.Values
-            .Select(d => new DocumentSummary(d.Id, d.FileName, d.UploadedAt,
-                _chunks.Count(c => c.DocumentId == d.Id)))
-            .OrderByDescending(d => d.UploadedAt)
-            .ToList();
+        _documents.Select(kv => new DocumentSummary(kv.Key, kv.Value.FileName, kv.Value.UploadedAt, 0))
+                  .OrderByDescending(d => d.UploadedAt)
+                  .ToList();
 
-    public bool DeleteDocument(Guid id)
+    public async Task<bool> DeleteDocumentAsync(Guid id, CancellationToken ct = default)
     {
         if (!_documents.TryRemove(id, out _)) return false;
-        foreach (var chunk in _chunks.Where(c => c.DocumentId == id).ToList())
-            _chunks.TryTake(out _);
+
+        await _client.DeleteAsync(Collection,
+            new Filter { Must = { new Condition { Field = new FieldCondition {
+                Key = "document_id",
+                Match = new Match { Text = id.ToString() }
+            }}}},
+            cancellationToken: ct);
+
         return true;
     }
 
-    private static float CosineSimilarity(float[] a, float[] b)
+    private async Task EnsureCollectionAsync()
     {
-        var dot = 0f; var normA = 0f; var normB = 0f;
-        for (var i = 0; i < a.Length; i++) { dot += a[i] * b[i]; normA += a[i] * a[i]; normB += b[i] * b[i]; }
-        return normA == 0 || normB == 0 ? 0 : dot / (MathF.Sqrt(normA) * MathF.Sqrt(normB));
+        var collections = await _client.ListCollectionsAsync();
+        if (collections.Any(c => c == Collection)) return;
+
+        await _client.CreateCollectionAsync(Collection,
+            new VectorParams { Size = VectorSize, Distance = Distance.Cosine });
     }
 }
