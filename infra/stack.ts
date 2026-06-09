@@ -27,6 +27,18 @@ export class InfraStack extends cdk.Stack {
       "/aichatapi/prod/anthropic-api-key"
     );
 
+    const qdrantUrlSecret = secretsmanager.Secret.fromSecretNameV2(
+      this,
+      "QdrantUrlSecret",
+      "/aichatapi/prod/qdrant-url"
+    );
+
+    const qdrantKeySecret = secretsmanager.Secret.fromSecretNameV2(
+      this,
+      "QdrantKeySecret",
+      "/aichatapi/prod/qdrant-api-key"
+    );
+
     const imageTag = new cdk.CfnParameter(this, "ImageTag", {
       type: "String",
       default: "latest",
@@ -47,6 +59,8 @@ export class InfraStack extends cdk.Stack {
       secrets: {
         OpenAI__ApiKey:    ecs.Secret.fromSecretsManager(openAiSecret),
         Anthropic__ApiKey: ecs.Secret.fromSecretsManager(anthropicSecret),
+        Qdrant__Url:       ecs.Secret.fromSecretsManager(qdrantUrlSecret),
+        Qdrant__ApiKey:    ecs.Secret.fromSecretsManager(qdrantKeySecret),
       },
       logging: ecs.LogDrivers.awsLogs({ streamPrefix: "aichatapi" }),
     });
