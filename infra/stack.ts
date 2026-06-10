@@ -68,7 +68,7 @@ export class InfraStack extends cdk.Stack {
     const sg = new ec2.SecurityGroup(this, "Sg", { vpc });
     sg.addIngressRule(ec2.Peer.anyIpv4(), ec2.Port.tcp(8080));
 
-    new ecs.FargateService(this, "Service", {
+    const service = new ecs.FargateService(this, "Service", {
       cluster,
       taskDefinition: taskDef,
       desiredCount: 1,
@@ -76,5 +76,8 @@ export class InfraStack extends cdk.Stack {
       securityGroups: [sg],
       vpcSubnets: { subnetType: ec2.SubnetType.PUBLIC },
     });
+
+    const scaling = service.autoScaleTaskCount({ minCapacity: 1, maxCapacity: 4 });
+    scaling.scaleOnCpuUtilization("CpuScaling", { targetUtilizationPercent: 70 });
   }
 }
