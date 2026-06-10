@@ -92,21 +92,14 @@ export class InfraStack extends cdk.Stack {
     const agentRole = new iam.Role(this, "BuildkiteAgentRole", {
       assumedBy: new iam.ServicePrincipal("ec2.amazonaws.com"),
       managedPolicies: [
-        iam.ManagedPolicy.fromAwsManagedPolicyName("AmazonEC2ContainerRegistryPowerUser"),
+        iam.ManagedPolicy.fromAwsManagedPolicyName("AmazonEC2ContainerRegistryFullAccess"),
+        iam.ManagedPolicy.fromAwsManagedPolicyName("AmazonECS_FullAccess"),
+        iam.ManagedPolicy.fromAwsManagedPolicyName("AmazonS3FullAccess"),
+        iam.ManagedPolicy.fromAwsManagedPolicyName("AmazonSSMReadOnlyAccess"),
+        iam.ManagedPolicy.fromAwsManagedPolicyName("AWSCloudFormationFullAccess"),
+        iam.ManagedPolicy.fromAwsManagedPolicyName("IAMFullAccess"),
       ],
     });
-
-    // Allow CDK deploy: CloudFormation, ECS, IAM passrole
-    agentRole.addToPolicy(new iam.PolicyStatement({
-      actions: [
-        "cloudformation:*",
-        "ecs:*",
-        "iam:PassRole",
-        "iam:GetRole",
-        "ssm:GetParameter",
-      ],
-      resources: ["*"],
-    }));
 
     buildkiteAgentToken.grantRead(agentRole);
 
