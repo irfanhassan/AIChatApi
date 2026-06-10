@@ -3,6 +3,8 @@ import { Construct } from "constructs";
 import * as ec2 from "aws-cdk-lib/aws-ec2";
 import * as ecr from "aws-cdk-lib/aws-ecr";
 import * as ecs from "aws-cdk-lib/aws-ecs";
+import * as autoscaling from "aws-cdk-lib/aws-autoscaling";
+import * as iam from "aws-cdk-lib/aws-iam";
 import * as secretsmanager from "aws-cdk-lib/aws-secretsmanager";
 
 export class InfraStack extends cdk.Stack {
@@ -79,5 +81,74 @@ export class InfraStack extends cdk.Stack {
 
     const scaling = service.autoScaleTaskCount({ minCapacity: 1, maxCapacity: 4 });
     scaling.scaleOnCpuUtilization("CpuScaling", { targetUtilizationPercent: 70 });
+
+    // Buildkite agent EC2 instance
+    const buildkiteAgentToken = secretsmanager.Secret.fromSecretNameV2(
+      this,
+      "BuildkiteAgentToken",
+      "/aichatapi/buildkite/agent-token"
+    );
+
+    const agentRole = new iam.Role(this, "BuildkiteAgentRole", {
+      assumedBy: new iam.ServicePrincipal("ec2.amazonaws.com"),
+      managedPolicies: [
+        iam.ManagedPolicy.fromAwsManagedPolicyName("AmazonEC2ContainerRegistryPowerUser"),
+      ],
+    });
+
+    // Allow CDK deploy: CloudFormation, ECS, IAM passrole
+    agentRole.addToPolicy(new iam.PolicyStatement({
+      actions: [
+        "cloudformation:*",
+        "ecs:*",
+        "iam:PassRole",
+        "iam:GetRole",
+        "ssm:GetParameter",
+      ],
+      resources: ["*"],
+    }));
+
+    buildkiteAgentToken.grantRead(agentRole);
+
+    const agentSg = new ec2.SecurityGroup(this, "BuildkiteAgentSg", {
+      vpc,
+      description: "Buildkite agent - outbound only",
+    });
+
+    const userData = ec2.UserData.forLinux();
+    userData.addCommands(
+      "set -euo pipefail",
+      // Install Docker
+      "dnf install -y docker",
+      "systemctl enable --now docker",
+      "usermod -aG docker ec2-user",
+      // Install AWS CLI v2
+      'curl -fsSL "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o /tmp/awscliv2.zip',
+      "unzip -q /tmp/awscliv2.zip -d /tmp && /tmp/aws/install",
+      // Install Node.js (for CDK deploy step)
+      "dnf install -y nodejs npm",
+      "npm install -g aws-cdk",
+      // Install Buildkite agent
+      'curl -fsSL "https://keys.openpgp.org/vks/v1/by-fingerprint/32A37959C2FA5C3C99EFBC32A79206696452D198" | gpg --dearmor -o /usr/share/keyrings/buildkite-agent-archive-keyring.gpg',
+      'echo "deb [signed-by=/usr/share/keyrings/buildkite-agent-archive-keyring.gpg] https://apt.buildkite.com/buildkite-agent stable main" > /etc/yum.repos.d/buildkite-agent.repo',
+      "dnf install -y buildkite-agent",
+      // Configure agent token from Secrets Manager
+      `TOKEN=$(aws secretsmanager get-secret-value --secret-id /aichatapi/buildkite/agent-token --region ap-southeast-2 --query SecretString --output text)`,
+      `sed -i "s/xxx/$TOKEN/" /etc/buildkite-agent/buildkite-agent.cfg`,
+      "systemctl enable --now buildkite-agent"
+    );
+
+    new autoscaling.AutoScalingGroup(this, "BuildkiteAgentAsg", {
+      vpc,
+      instanceType: ec2.InstanceType.of(ec2.InstanceClass.T3, ec2.InstanceSize.MICRO),
+      machineImage: ec2.MachineImage.latestAmazonLinux2023(),
+      role: agentRole,
+      securityGroup: agentSg,
+      userData,
+      vpcSubnets: { subnetType: ec2.SubnetType.PUBLIC },
+      minCapacity: 1,
+      maxCapacity: 1,
+      updatePolicy: autoscaling.UpdatePolicy.rollingUpdate(),
+    });
   }
 }
