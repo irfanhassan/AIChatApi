@@ -1,0 +1,654 @@
+{
+ "Resources": {
+  "ClusterEB0386A7": {
+   "Type": "AWS::ECS::Cluster",
+   "Metadata": {
+    "aws:cdk:path": "InfraStack/Cluster/Resource"
+   }
+  },
+  "TaskDefTaskRole1EDB4A67": {
+   "Type": "AWS::IAM::Role",
+   "Properties": {
+    "AssumeRolePolicyDocument": {
+     "Statement": [
+      {
+       "Action": "sts:AssumeRole",
+       "Effect": "Allow",
+       "Principal": {
+        "Service": "ecs-tasks.amazonaws.com"
+       }
+      }
+     ],
+     "Version": "2012-10-17"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "InfraStack/TaskDef/TaskRole/Resource"
+   }
+  },
+  "TaskDef54694570": {
+   "Type": "AWS::ECS::TaskDefinition",
+   "Properties": {
+    "ContainerDefinitions": [
+     {
+      "Environment": [
+       {
+        "Name": "ASPNETCORE_ENVIRONMENT",
+        "Value": "Production"
+       },
+       {
+        "Name": "OpenAI__Model",
+        "Value": "gpt-4o-mini"
+       }
+      ],
+      "Essential": true,
+      "Image": {
+       "Fn::Join": [
+        "",
+        [
+         "847143401367.dkr.ecr.ap-southeast-2.",
+         {
+          "Ref": "AWS::URLSuffix"
+         },
+         "/aichatapi:",
+         {
+          "Ref": "ImageTag"
+         }
+        ]
+       ]
+      },
+      "LogConfiguration": {
+       "LogDriver": "awslogs",
+       "Options": {
+        "awslogs-group": {
+         "Ref": "TaskDefwebLogGroupC89AAFBC"
+        },
+        "awslogs-stream-prefix": "aichatapi",
+        "awslogs-region": "ap-southeast-2"
+       }
+      },
+      "Name": "web",
+      "PortMappings": [
+       {
+        "ContainerPort": 8080,
+        "Protocol": "tcp"
+       }
+      ],
+      "Secrets": [
+       {
+        "Name": "OpenAI__ApiKey",
+        "ValueFrom": "arn:aws:secretsmanager:ap-southeast-2:847143401367:secret:/aichatapi/prod/openai-api-key"
+       },
+       {
+        "Name": "Anthropic__ApiKey",
+        "ValueFrom": "arn:aws:secretsmanager:ap-southeast-2:847143401367:secret:/aichatapi/prod/anthropic-api-key"
+       },
+       {
+        "Name": "Qdrant__Url",
+        "ValueFrom": "arn:aws:secretsmanager:ap-southeast-2:847143401367:secret:/aichatapi/prod/qdrant-url"
+       },
+       {
+        "Name": "Qdrant__ApiKey",
+        "ValueFrom": "arn:aws:secretsmanager:ap-southeast-2:847143401367:secret:/aichatapi/prod/qdrant-api-key"
+       }
+      ]
+     }
+    ],
+    "Cpu": "512",
+    "ExecutionRoleArn": {
+     "Fn::GetAtt": [
+      "TaskDefExecutionRoleB4775C97",
+      "Arn"
+     ]
+    },
+    "Family": "InfraStackTaskDefE1F4AEA1",
+    "Memory": "1024",
+    "NetworkMode": "awsvpc",
+    "RequiresCompatibilities": [
+     "FARGATE"
+    ],
+    "TaskRoleArn": {
+     "Fn::GetAtt": [
+      "TaskDefTaskRole1EDB4A67",
+      "Arn"
+     ]
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "InfraStack/TaskDef/Resource"
+   }
+  },
+  "TaskDefwebLogGroupC89AAFBC": {
+   "Type": "AWS::Logs::LogGroup",
+   "UpdateReplacePolicy": "Retain",
+   "DeletionPolicy": "Retain",
+   "Metadata": {
+    "aws:cdk:path": "InfraStack/TaskDef/web/LogGroup/Resource"
+   }
+  },
+  "TaskDefExecutionRoleB4775C97": {
+   "Type": "AWS::IAM::Role",
+   "Properties": {
+    "AssumeRolePolicyDocument": {
+     "Statement": [
+      {
+       "Action": "sts:AssumeRole",
+       "Effect": "Allow",
+       "Principal": {
+        "Service": "ecs-tasks.amazonaws.com"
+       }
+      }
+     ],
+     "Version": "2012-10-17"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "InfraStack/TaskDef/ExecutionRole/Resource"
+   }
+  },
+  "TaskDefExecutionRoleDefaultPolicy0DBB737A": {
+   "Type": "AWS::IAM::Policy",
+   "Properties": {
+    "PolicyDocument": {
+     "Statement": [
+      {
+       "Action": [
+        "ecr:BatchCheckLayerAvailability",
+        "ecr:BatchGetImage",
+        "ecr:GetDownloadUrlForLayer"
+       ],
+       "Effect": "Allow",
+       "Resource": "arn:aws:ecr:ap-southeast-2:847143401367:repository/aichatapi"
+      },
+      {
+       "Action": "ecr:GetAuthorizationToken",
+       "Effect": "Allow",
+       "Resource": "*"
+      },
+      {
+       "Action": [
+        "logs:CreateLogStream",
+        "logs:PutLogEvents"
+       ],
+       "Effect": "Allow",
+       "Resource": {
+        "Fn::GetAtt": [
+         "TaskDefwebLogGroupC89AAFBC",
+         "Arn"
+        ]
+       }
+      },
+      {
+       "Action": [
+        "secretsmanager:DescribeSecret",
+        "secretsmanager:GetSecretValue"
+       ],
+       "Effect": "Allow",
+       "Resource": [
+        "arn:aws:secretsmanager:ap-southeast-2:847143401367:secret:/aichatapi/prod/anthropic-api-key-??????",
+        "arn:aws:secretsmanager:ap-southeast-2:847143401367:secret:/aichatapi/prod/openai-api-key-??????",
+        "arn:aws:secretsmanager:ap-southeast-2:847143401367:secret:/aichatapi/prod/qdrant-api-key-??????",
+        "arn:aws:secretsmanager:ap-southeast-2:847143401367:secret:/aichatapi/prod/qdrant-url-??????"
+       ]
+      }
+     ],
+     "Version": "2012-10-17"
+    },
+    "PolicyName": "TaskDefExecutionRoleDefaultPolicy0DBB737A",
+    "Roles": [
+     {
+      "Ref": "TaskDefExecutionRoleB4775C97"
+     }
+    ]
+   },
+   "Metadata": {
+    "aws:cdk:path": "InfraStack/TaskDef/ExecutionRole/DefaultPolicy/Resource"
+   }
+  },
+  "SgD4954771": {
+   "Type": "AWS::EC2::SecurityGroup",
+   "Properties": {
+    "GroupDescription": "InfraStack/Sg",
+    "SecurityGroupEgress": [
+     {
+      "CidrIp": "0.0.0.0/0",
+      "Description": "Allow all outbound traffic by default",
+      "IpProtocol": "-1"
+     }
+    ],
+    "SecurityGroupIngress": [
+     {
+      "CidrIp": "0.0.0.0/0",
+      "Description": "from 0.0.0.0/0:8080",
+      "FromPort": 8080,
+      "IpProtocol": "tcp",
+      "ToPort": 8080
+     }
+    ],
+    "VpcId": "vpc-06cb85723dfa04b47"
+   },
+   "Metadata": {
+    "aws:cdk:path": "InfraStack/Sg/Resource"
+   }
+  },
+  "ServiceD69D759B": {
+   "Type": "AWS::ECS::Service",
+   "Properties": {
+    "Cluster": {
+     "Ref": "ClusterEB0386A7"
+    },
+    "DeploymentConfiguration": {
+     "MaximumPercent": 200,
+     "MinimumHealthyPercent": 50
+    },
+    "DesiredCount": 1,
+    "EnableECSManagedTags": false,
+    "LaunchType": "FARGATE",
+    "NetworkConfiguration": {
+     "AwsvpcConfiguration": {
+      "AssignPublicIp": "ENABLED",
+      "SecurityGroups": [
+       {
+        "Fn::GetAtt": [
+         "SgD4954771",
+         "GroupId"
+        ]
+       }
+      ],
+      "Subnets": [
+       "subnet-0ef2dbe4c2e0be051",
+       "subnet-0e61c92360dc1f612",
+       "subnet-0249adcc10c4d4684"
+      ]
+     }
+    },
+    "TaskDefinition": {
+     "Ref": "TaskDef54694570"
+    }
+   },
+   "DependsOn": [
+    "TaskDefTaskRole1EDB4A67"
+   ],
+   "Metadata": {
+    "aws:cdk:path": "InfraStack/Service/Service"
+   }
+  },
+  "ServiceTaskCountTarget23E25614": {
+   "Type": "AWS::ApplicationAutoScaling::ScalableTarget",
+   "Properties": {
+    "MaxCapacity": 4,
+    "MinCapacity": 1,
+    "ResourceId": {
+     "Fn::Join": [
+      "",
+      [
+       "service/",
+       {
+        "Ref": "ClusterEB0386A7"
+       },
+       "/",
+       {
+        "Fn::GetAtt": [
+         "ServiceD69D759B",
+         "Name"
+        ]
+       }
+      ]
+     ]
+    },
+    "RoleARN": "arn:aws:iam::847143401367:role/aws-service-role/ecs.application-autoscaling.amazonaws.com/AWSServiceRoleForApplicationAutoScaling_ECSService",
+    "ScalableDimension": "ecs:service:DesiredCount",
+    "ServiceNamespace": "ecs"
+   },
+   "DependsOn": [
+    "TaskDefTaskRole1EDB4A67"
+   ],
+   "Metadata": {
+    "aws:cdk:path": "InfraStack/Service/TaskCount/Target/Resource"
+   }
+  },
+  "ServiceTaskCountTargetCpuScalingCC8A5DF6": {
+   "Type": "AWS::ApplicationAutoScaling::ScalingPolicy",
+   "Properties": {
+    "PolicyName": "InfraStackServiceTaskCountTargetCpuScalingD5DD0B7B",
+    "PolicyType": "TargetTrackingScaling",
+    "ScalingTargetId": {
+     "Ref": "ServiceTaskCountTarget23E25614"
+    },
+    "TargetTrackingScalingPolicyConfiguration": {
+     "PredefinedMetricSpecification": {
+      "PredefinedMetricType": "ECSServiceAverageCPUUtilization"
+     },
+     "TargetValue": 70
+    }
+   },
+   "DependsOn": [
+    "TaskDefTaskRole1EDB4A67"
+   ],
+   "Metadata": {
+    "aws:cdk:path": "InfraStack/Service/TaskCount/Target/CpuScaling/Resource"
+   }
+  },
+  "BuildkiteAgentRole572E6B86": {
+   "Type": "AWS::IAM::Role",
+   "Properties": {
+    "AssumeRolePolicyDocument": {
+     "Statement": [
+      {
+       "Action": "sts:AssumeRole",
+       "Effect": "Allow",
+       "Principal": {
+        "Service": "ec2.amazonaws.com"
+       }
+      }
+     ],
+     "Version": "2012-10-17"
+    },
+    "ManagedPolicyArns": [
+     {
+      "Fn::Join": [
+       "",
+       [
+        "arn:",
+        {
+         "Ref": "AWS::Partition"
+        },
+        ":iam::aws:policy/AmazonEC2ContainerRegistryFullAccess"
+       ]
+      ]
+     },
+     {
+      "Fn::Join": [
+       "",
+       [
+        "arn:",
+        {
+         "Ref": "AWS::Partition"
+        },
+        ":iam::aws:policy/AmazonECS_FullAccess"
+       ]
+      ]
+     },
+     {
+      "Fn::Join": [
+       "",
+       [
+        "arn:",
+        {
+         "Ref": "AWS::Partition"
+        },
+        ":iam::aws:policy/AmazonS3FullAccess"
+       ]
+      ]
+     },
+     {
+      "Fn::Join": [
+       "",
+       [
+        "arn:",
+        {
+         "Ref": "AWS::Partition"
+        },
+        ":iam::aws:policy/AmazonSSMReadOnlyAccess"
+       ]
+      ]
+     },
+     {
+      "Fn::Join": [
+       "",
+       [
+        "arn:",
+        {
+         "Ref": "AWS::Partition"
+        },
+        ":iam::aws:policy/AWSCloudFormationFullAccess"
+       ]
+      ]
+     },
+     {
+      "Fn::Join": [
+       "",
+       [
+        "arn:",
+        {
+         "Ref": "AWS::Partition"
+        },
+        ":iam::aws:policy/IAMFullAccess"
+       ]
+      ]
+     }
+    ]
+   },
+   "Metadata": {
+    "aws:cdk:path": "InfraStack/BuildkiteAgentRole/Resource"
+   }
+  },
+  "BuildkiteAgentRoleDefaultPolicy6EE640D7": {
+   "Type": "AWS::IAM::Policy",
+   "Properties": {
+    "PolicyDocument": {
+     "Statement": [
+      {
+       "Action": [
+        "secretsmanager:DescribeSecret",
+        "secretsmanager:GetSecretValue"
+       ],
+       "Effect": "Allow",
+       "Resource": "arn:aws:secretsmanager:ap-southeast-2:847143401367:secret:/aichatapi/buildkite/agent-token-??????"
+      }
+     ],
+     "Version": "2012-10-17"
+    },
+    "PolicyName": "BuildkiteAgentRoleDefaultPolicy6EE640D7",
+    "Roles": [
+     {
+      "Ref": "BuildkiteAgentRole572E6B86"
+     }
+    ]
+   },
+   "Metadata": {
+    "aws:cdk:path": "InfraStack/BuildkiteAgentRole/DefaultPolicy/Resource"
+   }
+  },
+  "BuildkiteAgentSgCF0560B2": {
+   "Type": "AWS::EC2::SecurityGroup",
+   "Properties": {
+    "GroupDescription": "Buildkite agent - outbound only",
+    "SecurityGroupEgress": [
+     {
+      "CidrIp": "0.0.0.0/0",
+      "Description": "Allow all outbound traffic by default",
+      "IpProtocol": "-1"
+     }
+    ],
+    "VpcId": "vpc-06cb85723dfa04b47"
+   },
+   "Metadata": {
+    "aws:cdk:path": "InfraStack/BuildkiteAgentSg/Resource"
+   }
+  },
+  "BuildkiteAgentAsgInstanceProfileA586C596": {
+   "Type": "AWS::IAM::InstanceProfile",
+   "Properties": {
+    "Roles": [
+     {
+      "Ref": "BuildkiteAgentRole572E6B86"
+     }
+    ]
+   },
+   "Metadata": {
+    "aws:cdk:path": "InfraStack/BuildkiteAgentAsg/InstanceProfile"
+   }
+  },
+  "BuildkiteAgentAsgLaunchTemplate6BF269C1": {
+   "Type": "AWS::EC2::LaunchTemplate",
+   "Properties": {
+    "LaunchTemplateData": {
+     "IamInstanceProfile": {
+      "Arn": {
+       "Fn::GetAtt": [
+        "BuildkiteAgentAsgInstanceProfileA586C596",
+        "Arn"
+       ]
+      }
+     },
+     "ImageId": {
+      "Ref": "SsmParameterValueawsserviceamiamazonlinuxlatestal2023amikernel61x8664C96584B6F00A464EAD1953AFF4B05118Parameter"
+     },
+     "InstanceType": "t3.micro",
+     "Monitoring": {
+      "Enabled": false
+     },
+     "SecurityGroupIds": [
+      {
+       "Fn::GetAtt": [
+        "BuildkiteAgentSgCF0560B2",
+        "GroupId"
+       ]
+      }
+     ],
+     "TagSpecifications": [
+      {
+       "ResourceType": "instance",
+       "Tags": [
+        {
+         "Key": "Name",
+         "Value": "InfraStack/BuildkiteAgentAsg/LaunchTemplate"
+        }
+       ]
+      },
+      {
+       "ResourceType": "volume",
+       "Tags": [
+        {
+         "Key": "Name",
+         "Value": "InfraStack/BuildkiteAgentAsg/LaunchTemplate"
+        }
+       ]
+      }
+     ],
+     "UserData": {
+      "Fn::Base64": "#!/bin/bash\nset -euo pipefail\ndnf install -y docker\nsystemctl enable --now docker\nusermod -aG docker ec2-user\ncurl -fsSL \"https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip\" -o /tmp/awscliv2.zip\nunzip -q /tmp/awscliv2.zip -d /tmp && /tmp/aws/install\ndnf install -y nodejs npm\nnpm install -g aws-cdk\ncurl -fsSL \"https://keys.openpgp.org/vks/v1/by-fingerprint/32A37959C2FA5C3C99EFBC32A79206696452D198\" | gpg --dearmor -o /usr/share/keyrings/buildkite-agent-archive-keyring.gpg\necho \"deb [signed-by=/usr/share/keyrings/buildkite-agent-archive-keyring.gpg] https://apt.buildkite.com/buildkite-agent stable main\" > /etc/yum.repos.d/buildkite-agent.repo\ndnf install -y buildkite-agent\nTOKEN=$(aws secretsmanager get-secret-value --secret-id /aichatapi/buildkite/agent-token --region ap-southeast-2 --query SecretString --output text)\nsed -i \"s/xxx/$TOKEN/\" /etc/buildkite-agent/buildkite-agent.cfg\nsystemctl enable --now buildkite-agent"
+     }
+    },
+    "TagSpecifications": [
+     {
+      "ResourceType": "launch-template",
+      "Tags": [
+       {
+        "Key": "Name",
+        "Value": "InfraStack/BuildkiteAgentAsg/LaunchTemplate"
+       }
+      ]
+     }
+    ]
+   },
+   "DependsOn": [
+    "BuildkiteAgentRoleDefaultPolicy6EE640D7",
+    "BuildkiteAgentRole572E6B86"
+   ],
+   "Metadata": {
+    "aws:cdk:path": "InfraStack/BuildkiteAgentAsg/LaunchTemplate/Resource"
+   }
+  },
+  "BuildkiteAgentAsgASG2C77D4EC": {
+   "Type": "AWS::AutoScaling::AutoScalingGroup",
+   "Properties": {
+    "LaunchTemplate": {
+     "LaunchTemplateId": {
+      "Ref": "BuildkiteAgentAsgLaunchTemplate6BF269C1"
+     },
+     "Version": {
+      "Fn::GetAtt": [
+       "BuildkiteAgentAsgLaunchTemplate6BF269C1",
+       "LatestVersionNumber"
+      ]
+     }
+    },
+    "MaxSize": "1",
+    "MinSize": "1",
+    "Tags": [
+     {
+      "Key": "Name",
+      "PropagateAtLaunch": true,
+      "Value": "InfraStack/BuildkiteAgentAsg"
+     }
+    ],
+    "VPCZoneIdentifier": [
+     "subnet-0ef2dbe4c2e0be051",
+     "subnet-0e61c92360dc1f612",
+     "subnet-0249adcc10c4d4684"
+    ]
+   },
+   "UpdatePolicy": {
+    "AutoScalingRollingUpdate": {
+     "SuspendProcesses": [
+      "HealthCheck",
+      "ReplaceUnhealthy",
+      "AZRebalance",
+      "AlarmNotification",
+      "ScheduledActions",
+      "InstanceRefresh"
+     ]
+    },
+    "AutoScalingScheduledAction": {
+     "IgnoreUnmodifiedGroupSizeProperties": true
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "InfraStack/BuildkiteAgentAsg/ASG"
+   }
+  },
+  "CDKMetadata": {
+   "Type": "AWS::CDK::Metadata",
+   "Properties": {
+    "Analytics": "v2:deflate64:H4sIAAAAAAAA/81WbWsbORD+LdXHomwPQ7kj31yHFkPbM7a5L6aUsTTZTK2VdHpJziz734te1vEm4VLaQvvB7O6M5tHMM49GnjWz1382f7yAO38h5OFC0b7pNwHEgcOd/9yjcM0arfEUjDu+AY8chW/6hYo+oNv17NYKdslesuETX1zraudvwbUQcAv+cIXXpCmQ0Tv2kvFnfhllGsYXRgcgje7MVjfYoLslgbsxsn7zjQAFe5UTWJiow8AJuqZfG4W7noH3sUP55sgue2YdaUEW1FyItDSXw+uaFDAXactS5cB/JJozZxR+hA7rd89Ayq1ZjSAro0gc2eWuHz5lbwggbpZakcaTLxX7vPP/cX9P7w8Q24GGFmWGJPQJdGI7zp0+kf7rHN/Cwvf1POs/8cKLPZ+2MWBrkucRzmOzlJsAATvUwU/a9luYf1ZJmatCU3pbah9AC1w5c00KB65M65v+vWnfORPtrmcOA+p7ueX40T1wFLOm36CIjsJxDDkNxpLDUrcOvV/HnFzPBOjSxWIJLiJnwmiNWda+yj1q+jfiUo5QhZwRmzOJXjiyD1Kb5MLfQ9TiZoudVRAwnwtxQxqXHbRYcahSsD1aPEEHIIXyg9Fp+pNu2eU1KI+c+XP8MVOP7goC3J9TIwgCruJekVjauZSJgOr21oS/7Xmle2XE4QrT+PYPkqp9qdYDHldA7rwTkwIHDtYqEpDQIQbjBSjSbdPf3wquxbDrmS/XRRrI3oJIO6DwKb268oo61H4klzOH3kQnxoaUeV5fO9ILsCAoHEcL/DexpNYlZNyarQNx+IDBkSha5WnioUw3HMrRkVFs1unp0uBMkk+5pWpwOWYWck3/gIrjMl/8C2OUNHen+VMEMmGCl0fOiXS7KXzdn4+JYeATTucxmOp/qPwnVfWE9s44/AZh3VqxiXuN6TD3zOfXil+klm+DZ3vBWbQyybMO0ZOYHhY0DHxdu/7UH5gySsBBhwHdwLWR2Hzxr25nr5u/mtmLL57owkUdqMNmXZ5fARAazh12CQAA"
+   },
+   "Metadata": {
+    "aws:cdk:path": "InfraStack/CDKMetadata/Default"
+   }
+  }
+ },
+ "Parameters": {
+  "ImageTag": {
+   "Type": "String",
+   "Default": "latest"
+  },
+  "SsmParameterValueawsserviceamiamazonlinuxlatestal2023amikernel61x8664C96584B6F00A464EAD1953AFF4B05118Parameter": {
+   "Type": "AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>",
+   "Default": "/aws/service/ami-amazon-linux-latest/al2023-ami-kernel-6.1-x86_64"
+  },
+  "BootstrapVersion": {
+   "Type": "AWS::SSM::Parameter::Value<String>",
+   "Default": "/cdk-bootstrap/hnb659fds/version",
+   "Description": "Version of the CDK Bootstrap resources in this environment, automatically retrieved from SSM Parameter Store. [cdk:skip]"
+  }
+ },
+ "Rules": {
+  "CheckBootstrapVersion": {
+   "Assertions": [
+    {
+     "Assert": {
+      "Fn::Not": [
+       {
+        "Fn::Contains": [
+         [
+          "1",
+          "2",
+          "3",
+          "4",
+          "5"
+         ],
+         {
+          "Ref": "BootstrapVersion"
+         }
+        ]
+       }
+      ]
+     },
+     "AssertDescription": "CDK bootstrap stack version 6 required. Please run 'cdk bootstrap' with a recent version of the CDK CLI."
+    }
+   ]
+  }
+ }
+}

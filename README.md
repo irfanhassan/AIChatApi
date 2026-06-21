@@ -60,6 +60,50 @@ OpenAI is used for embeddings — Anthropic has no embedding model. Claude is us
 
 ---
 
+## How RAG works — Chunking, Embedding, and Vector DB explained
+
+### Chunking
+
+A PDF can be hundreds of pages long. Sending the entire document to an AI model on every question is expensive and often exceeds the model's context window. Instead the text is split into small, overlapping **chunks** of 500 words with a 50-word overlap (`RagService.ChunkText`):
+
+```
+[ word 1 ........... word 500 ]
+                 [ word 451 ........... word 950 ]
+                                  [ word 901 ........... word 1400 ]
+```
+
+The 50-word overlap ensures that a sentence that falls on a boundary is not cut off — it appears in full in at least one of the two adjacent chunks.
+
+### Embedding
+
+Each chunk is converted into a **vector** — an array of 1536 numbers — by sending it to OpenAI's `text-embedding-3-small` model (`EmbeddingService`). A vector captures the *semantic meaning* of the text, not just the words:
+
+```
+"The refund window is 30 days"   → [0.12, -0.41, 0.88, ...]   (1536 numbers)
+"Returns are accepted within a month" → [0.13, -0.40, 0.86, ...] (very similar)
+"How to make pizza"              → [-0.71, 0.22, -0.33, ...]  (very different)
+```
+
+Two pieces of text that mean the same thing produce vectors that are mathematically close to each other, even if they use completely different words. This is what makes semantic search possible — you are matching *meaning*, not keywords.
+
+### Vector Database (Qdrant)
+
+The vectors and their original chunk text are stored in **Qdrant Cloud** (`VectorStore`). Each stored item (called a **point**) contains:
+- The 1536-number vector
+- The original chunk text as a payload field
+- The document ID and chunk index
+
+When you ask a question (`POST /api/rag/query`):
+
+1. The question is converted into a vector using the same embedding model
+2. Qdrant compares the question vector against all stored vectors using **cosine similarity** — a measure of how similar two vectors are (1.0 = identical meaning, 0.0 = unrelated)
+3. The top 5 most similar chunks are returned
+4. Those chunks are passed to Claude as context, and Claude answers using only that content
+
+This means the answer is always grounded in your actual documents, not in the model's general training data.
+
+---
+
 ## Project structure
 
 ```
@@ -154,7 +198,7 @@ cd AIChatApi
 
 dotnet user-secrets set "OpenAI:ApiKey"   "sk-..."
 dotnet user-secrets set "Anthropic:ApiKey" "sk-ant-..."
-dotnet user-secrets set "Qdrant:Url"      "https://your-cluster.qdrant.io"
+dotnet user-secrets set "Qdrant:Url"      "https://your-cluster.qdrant.io:6334"
 dotnet user-secrets set "Qdrant:ApiKey"   "your-qdrant-key"
 
 dotnet run
@@ -222,3 +266,35 @@ Then open `http://<ip>:8080` or `http://<ip>:8080/rag`.
 **In-memory conversation history** — lost on container restart. For production, persist to DynamoDB or Redis.
 
 **Raw HttpClient for OpenAI** — the OpenAI .NET SDK v2.9.1 had a bug where the model name was not serialised into requests when `ChatCompletionOptions` was null. Replaced with direct HTTP calls.
+
+---
+
+## Buildkite Agent (EC2)
+
+The Buildkite agent is an EC2 instance that polls Buildkite for pipeline jobs and executes them on your own AWS infrastructure. It is defined in CDK (`infra/stack.ts`) as an **Auto Scaling Group** with min/max of 1 instance so it is automatically recreated if terminated.
+
+### IAM permissions on the agent
+
+| Policy | Why |
+|---|---|
+| `AmazonEC2ContainerRegistryFullAccess` | Push Docker images to ECR |
+| `AmazonECS_FullAccess` | Update Fargate service during deploy |
+| `AWSCloudFormationFullAccess` | CDK deploy uses CloudFormation |
+| `IAMFullAccess` | CDK manages IAM roles for the task definition |
+| `AmazonS3FullAccess` | CDK bootstrap bucket |
+| `AmazonSSMReadOnlyAccess` | Read SSM parameters during deploy |
+
+### Managing the agent instance
+
+```powershell
+# Stop (saves compute cost, EBS still billed)
+aws ec2 stop-instances --instance-ids <instance-id> --region ap-southeast-2
+
+# Recreate from scratch after terminating
+cd infra
+npm ci
+npx tsc
+npx cdk deploy --region ap-southeast-2
+```
+
+The Buildkite agent token is stored in Secrets Manager at `/aichatapi/buildkite/agent-token` and fetched at instance boot via the user data script.

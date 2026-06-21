@@ -1,0 +1,81 @@
+{
+  "title": "Validation Report",
+  "pluginReports": [
+    {
+      "summary": {
+        "pluginName": "Construct Annotations",
+        "status": "success"
+      },
+      "violations": [
+        {
+          "ruleName": "@aws-cdk/aws-ecs:shouldUseCircuitBreaker",
+          "description": "Enable the 'circuitBreaker' property to trigger a quicker deployment failure if tasks are failing to come start (without this setting deployments may take up to 3 hours to fail). [ack: @aws-cdk/aws-ecs:shouldUseCircuitBreaker]",
+          "severity": "warning",
+          "violatingResources": [
+            {
+              "constructPath": "InfraStack/Service",
+              "templatePath": "cdk.out\\InfraStack.template.json",
+              "locations": []
+            }
+          ],
+          "violatingConstructs": [
+            {
+              "constructStack": {
+                "id": "InfraStack",
+                "path": "InfraStack",
+                "construct": "aws-cdk-lib.Stack",
+                "libraryVersion": "2.257.0",
+                "child": {
+                  "id": "Service",
+                  "path": "InfraStack/Service",
+                  "construct": "aws-cdk-lib.aws_ecs.FargateService",
+                  "libraryVersion": "2.257.0",
+                  "location": "Run with '--debug' to include location info"
+                },
+                "location": "<anonymous> (C:\\Source\\AIChatApi\\infra\\dist\\bin\\app.js:7:1)"
+              },
+              "constructPath": "InfraStack/Service",
+              "locations": [],
+              "resourceLogicalId": "N/A",
+              "templatePath": "cdk.out\\InfraStack.template.json"
+            }
+          ]
+        },
+        {
+          "ruleName": "@aws-cdk/aws-ecs:minHealthyPercent",
+          "description": "minHealthyPercent has not been configured so the default value of 50% is used. The number of running tasks will decrease below the desired count during deployments etc. See https://github.com/aws/aws-cdk/issues/31705 [ack: @aws-cdk/aws-ecs:minHealthyPercent]",
+          "severity": "warning",
+          "violatingResources": [
+            {
+              "constructPath": "InfraStack/Service",
+              "templatePath": "cdk.out\\InfraStack.template.json",
+              "locations": []
+            }
+          ],
+          "violatingConstructs": [
+            {
+              "constructStack": {
+                "id": "InfraStack",
+                "path": "InfraStack",
+                "construct": "aws-cdk-lib.Stack",
+                "libraryVersion": "2.257.0",
+                "child": {
+                  "id": "Service",
+                  "path": "InfraStack/Service",
+                  "construct": "aws-cdk-lib.aws_ecs.FargateService",
+                  "libraryVersion": "2.257.0",
+                  "location": "Run with '--debug' to include location info"
+                },
+                "location": "<anonymous> (C:\\Source\\AIChatApi\\infra\\dist\\bin\\app.js:7:1)"
+              },
+              "constructPath": "InfraStack/Service",
+              "locations": [],
+              "resourceLogicalId": "N/A",
+              "templatePath": "cdk.out\\InfraStack.template.json"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

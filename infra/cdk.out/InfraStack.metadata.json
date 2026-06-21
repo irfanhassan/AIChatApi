@@ -1,0 +1,795 @@
+{
+  "/InfraStack": [
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "<anonymous> (C:\\Source\\AIChatApi\\infra\\dist\\bin\\app.js:7:1)",
+        "...node internals..."
+      ]
+    }
+  ],
+  "/InfraStack/DefaultVpc": [
+    {
+      "type": "aws:cdk:analytics:construct",
+      "data": "*"
+    }
+  ],
+  "/InfraStack/Cluster": [
+    {
+      "type": "aws:cdk:analytics:construct",
+      "data": {
+        "vpc": "*"
+      }
+    }
+  ],
+  "/InfraStack/ImageTag": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "ImageTag"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "new InfraStack (C:\\Source\\AIChatApi\\infra\\dist\\stack.js:21:26)",
+        "<anonymous> (C:\\Source\\AIChatApi\\infra\\dist\\bin\\app.js:7:1)",
+        "...node internals..."
+      ]
+    }
+  ],
+  "/InfraStack/TaskDef": [
+    {
+      "type": "aws:cdk:analytics:construct",
+      "data": "*"
+    },
+    {
+      "type": "aws:cdk:analytics:construct",
+      "data": "*"
+    },
+    {
+      "type": "aws:cdk:analytics:method",
+      "data": "*"
+    },
+    {
+      "type": "aws:cdk:analytics:method",
+      "data": "*"
+    },
+    {
+      "type": "aws:cdk:analytics:method",
+      "data": "*"
+    },
+    {
+      "type": "aws:cdk:analytics:method",
+      "data": "*"
+    },
+    {
+      "type": "aws:cdk:analytics:method",
+      "data": "*"
+    },
+    {
+      "type": "aws:cdk:analytics:method",
+      "data": "*"
+    },
+    {
+      "type": "aws:cdk:analytics:method",
+      "data": "*"
+    }
+  ],
+  "/InfraStack/Sg": [
+    {
+      "type": "aws:cdk:analytics:construct",
+      "data": {
+        "vpc": "*"
+      }
+    },
+    {
+      "type": "aws:cdk:analytics:method",
+      "data": {
+        "addIngressRule": [
+          {
+            "canInlineRule": true,
+            "connections": "*",
+            "uniqueId": "*"
+          },
+          {}
+        ]
+      }
+    }
+  ],
+  "/InfraStack/Service": [
+    {
+      "type": "aws:cdk:warning",
+      "data": "Enable the 'circuitBreaker' property to trigger a quicker deployment failure if tasks are failing to come start (without this setting deployments may take up to 3 hours to fail). [ack: @aws-cdk/aws-ecs:shouldUseCircuitBreaker]",
+      "trace": [
+        "Annotations.addMessage (C:\\Source\\AIChatApi\\infra\\node_modules\\aws-cdk-lib\\core\\lib\\annotations.js:1:2399)",
+        "Annotations.addWarningV2 (C:\\Source\\AIChatApi\\infra\\node_modules\\aws-cdk-lib\\core\\lib\\annotations.js:1:1087)",
+        "new BaseService2 (C:\\Source\\AIChatApi\\infra\\node_modules\\aws-cdk-lib\\aws-ecs\\lib\\base\\base-service.js:1:13563)",
+        "new BaseService2 (C:\\Source\\AIChatApi\\infra\\node_modules\\aws-cdk-lib\\core\\lib\\no-box-stack-traces.js:1:345)",
+        "new FargateService2 (C:\\Source\\AIChatApi\\infra\\node_modules\\aws-cdk-lib\\aws-ecs\\lib\\fargate\\fargate-service.js:1:6805)",
+        "new FargateService2 (C:\\Source\\AIChatApi\\infra\\node_modules\\aws-cdk-lib\\core\\lib\\prop-injectable.js:1:855)",
+        "new InfraStack (C:\\Source\\AIChatApi\\infra\\dist\\stack.js:46:25)",
+        "Object.<anonymous> (C:\\Source\\AIChatApi\\infra\\dist\\bin\\app.js:7:1)",
+        "Module._compile (node:internal/modules/cjs/loader:1829:14)",
+        "Object..js (node:internal/modules/cjs/loader:1969:10)",
+        "Module.load (node:internal/modules/cjs/loader:1552:32)",
+        "Module._load (node:internal/modules/cjs/loader:1354:12)",
+        "wrapModuleLoad (node:internal/modules/cjs/loader:255:19)",
+        "Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:154:5)",
+        "node:internal/main/run_main_module:33:47"
+      ]
+    },
+    {
+      "type": "aws:cdk:warning",
+      "data": "minHealthyPercent has not been configured so the default value of 50% is used. The number of running tasks will decrease below the desired count during deployments etc. See https://github.com/aws/aws-cdk/issues/31705 [ack: @aws-cdk/aws-ecs:minHealthyPercent]",
+      "trace": [
+        "Annotations.addMessage (C:\\Source\\AIChatApi\\infra\\node_modules\\aws-cdk-lib\\core\\lib\\annotations.js:1:2399)",
+        "Annotations.addWarningV2 (C:\\Source\\AIChatApi\\infra\\node_modules\\aws-cdk-lib\\core\\lib\\annotations.js:1:1087)",
+        "new BaseService2 (C:\\Source\\AIChatApi\\infra\\node_modules\\aws-cdk-lib\\aws-ecs\\lib\\base\\base-service.js:1:14478)",
+        "new BaseService2 (C:\\Source\\AIChatApi\\infra\\node_modules\\aws-cdk-lib\\core\\lib\\no-box-stack-traces.js:1:345)",
+        "new FargateService2 (C:\\Source\\AIChatApi\\infra\\node_modules\\aws-cdk-lib\\aws-ecs\\lib\\fargate\\fargate-service.js:1:6805)",
+        "new FargateService2 (C:\\Source\\AIChatApi\\infra\\node_modules\\aws-cdk-lib\\core\\lib\\prop-injectable.js:1:855)",
+        "new InfraStack (C:\\Source\\AIChatApi\\infra\\dist\\stack.js:46:25)",
+        "Object.<anonymous> (C:\\Source\\AIChatApi\\infra\\dist\\bin\\app.js:7:1)",
+        "Module._compile (node:internal/modules/cjs/loader:1829:14)",
+        "Object..js (node:internal/modules/cjs/loader:1969:10)",
+        "Module.load (node:internal/modules/cjs/loader:1552:32)",
+        "Module._load (node:internal/modules/cjs/loader:1354:12)",
+        "wrapModuleLoad (node:internal/modules/cjs/loader:255:19)",
+        "Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:154:5)",
+        "node:internal/main/run_main_module:33:47"
+      ]
+    },
+    {
+      "type": "aws:cdk:analytics:construct",
+      "data": "*"
+    }
+  ],
+  "/InfraStack/BuildkiteAgentRole": [
+    {
+      "type": "aws:cdk:analytics:construct",
+      "data": {
+        "assumedBy": {
+          "principalAccount": "*",
+          "assumeRoleAction": "*"
+        },
+        "managedPolicies": [
+          {
+            "managedPolicyArn": "*"
+          },
+          {
+            "managedPolicyArn": "*"
+          },
+          {
+            "managedPolicyArn": "*"
+          },
+          {
+            "managedPolicyArn": "*"
+          },
+          {
+            "managedPolicyArn": "*"
+          },
+          {
+            "managedPolicyArn": "*"
+          }
+        ]
+      }
+    },
+    {
+      "type": "aws:cdk:analytics:method",
+      "data": {
+        "addToPrincipalPolicy": [
+          {}
+        ]
+      }
+    },
+    {
+      "type": "aws:cdk:analytics:method",
+      "data": {
+        "attachInlinePolicy": [
+          "*"
+        ]
+      }
+    },
+    {
+      "type": "aws:cdk:analytics:method",
+      "data": {
+        "attachInlinePolicy": [
+          "*"
+        ]
+      }
+    }
+  ],
+  "/InfraStack/BuildkiteAgentSg": [
+    {
+      "type": "aws:cdk:analytics:construct",
+      "data": {
+        "vpc": "*",
+        "description": "*"
+      }
+    }
+  ],
+  "/InfraStack/BuildkiteAgentAsg": [
+    {
+      "type": "aws:cdk:analytics:construct",
+      "data": {
+        "vpc": "*",
+        "instanceType": "*",
+        "machineImage": "*",
+        "role": "*",
+        "securityGroup": "*",
+        "userData": "*",
+        "vpcSubnets": {
+          "subnetType": "Public"
+        },
+        "minCapacity": "*",
+        "maxCapacity": "*",
+        "updatePolicy": "*"
+      }
+    }
+  ],
+  "/InfraStack/SsmParameterValue:--aws--service--ami-amazon-linux-latest--al2023-ami-kernel-6.1-x86_64:C96584B6-F00A-464E-AD19-53AFF4B05118.Parameter": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "SsmParameterValueawsserviceamiamazonlinuxlatestal2023amikernel61x8664C96584B6F00A464EAD1953AFF4B05118Parameter"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "...new AutoScalingGroup2 in aws-cdk-lib...",
+        "new InfraStack (C:\\Source\\AIChatApi\\infra\\dist\\stack.js:86:9)"
+      ]
+    }
+  ],
+  "/InfraStack/BootstrapVersion": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "BootstrapVersion"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "...aws-cdk-lib...",
+        "(no user code in 10 frames, use --stack-trace-limit to capture more)"
+      ]
+    }
+  ],
+  "/InfraStack/CheckBootstrapVersion": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "CheckBootstrapVersion"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "...aws-cdk-lib...",
+        "(no user code in 10 frames, use --stack-trace-limit to capture more)"
+      ]
+    }
+  ],
+  "/InfraStack/DefaultVpc/PublicSubnet1": [
+    {
+      "type": "aws:cdk:analytics:construct",
+      "data": "*"
+    }
+  ],
+  "/InfraStack/DefaultVpc/PublicSubnet2": [
+    {
+      "type": "aws:cdk:analytics:construct",
+      "data": "*"
+    }
+  ],
+  "/InfraStack/DefaultVpc/PublicSubnet3": [
+    {
+      "type": "aws:cdk:analytics:construct",
+      "data": "*"
+    }
+  ],
+  "/InfraStack/Cluster/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "ClusterEB0386A7"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "...new Cluster2 in aws-cdk-lib...",
+        "new InfraStack (C:\\Source\\AIChatApi\\infra\\dist\\stack.js:16:25)",
+        "<anonymous> (C:\\Source\\AIChatApi\\infra\\dist\\bin\\app.js:7:1)",
+        "...node internals..."
+      ]
+    }
+  ],
+  "/InfraStack/TaskDef/TaskRole": [
+    {
+      "type": "aws:cdk:analytics:construct",
+      "data": {
+        "assumedBy": {
+          "principalAccount": "*",
+          "assumeRoleAction": "*"
+        }
+      }
+    }
+  ],
+  "/InfraStack/TaskDef/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "TaskDef54694570"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "...new FargateTaskDefinition2 in aws-cdk-lib...",
+        "new InfraStack (C:\\Source\\AIChatApi\\infra\\dist\\stack.js:25:25)",
+        "<anonymous> (C:\\Source\\AIChatApi\\infra\\dist\\bin\\app.js:7:1)",
+        "...node internals..."
+      ]
+    }
+  ],
+  "/InfraStack/TaskDef/ExecutionRole": [
+    {
+      "type": "aws:cdk:analytics:construct",
+      "data": {
+        "assumedBy": {
+          "principalAccount": "*",
+          "assumeRoleAction": "*"
+        },
+        "roleName": "*"
+      }
+    },
+    {
+      "type": "aws:cdk:analytics:method",
+      "data": {
+        "addToPrincipalPolicy": [
+          {}
+        ]
+      }
+    },
+    {
+      "type": "aws:cdk:analytics:method",
+      "data": {
+        "attachInlinePolicy": [
+          "*"
+        ]
+      }
+    },
+    {
+      "type": "aws:cdk:analytics:method",
+      "data": {
+        "attachInlinePolicy": [
+          "*"
+        ]
+      }
+    },
+    {
+      "type": "aws:cdk:analytics:method",
+      "data": {
+        "addToPrincipalPolicy": [
+          {}
+        ]
+      }
+    },
+    {
+      "type": "aws:cdk:analytics:method",
+      "data": {
+        "addToPrincipalPolicy": [
+          {}
+        ]
+      }
+    },
+    {
+      "type": "aws:cdk:analytics:method",
+      "data": {
+        "addToPrincipalPolicy": [
+          {}
+        ]
+      }
+    },
+    {
+      "type": "aws:cdk:analytics:method",
+      "data": {
+        "addToPrincipalPolicy": [
+          {}
+        ]
+      }
+    },
+    {
+      "type": "aws:cdk:analytics:method",
+      "data": {
+        "addToPrincipalPolicy": [
+          {}
+        ]
+      }
+    },
+    {
+      "type": "aws:cdk:analytics:method",
+      "data": {
+        "addToPrincipalPolicy": [
+          {}
+        ]
+      }
+    }
+  ],
+  "/InfraStack/Sg/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "SgD4954771"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "...new SecurityGroup2 in aws-cdk-lib...",
+        "new InfraStack (C:\\Source\\AIChatApi\\infra\\dist\\stack.js:44:20)",
+        "<anonymous> (C:\\Source\\AIChatApi\\infra\\dist\\bin\\app.js:7:1)",
+        "...node internals..."
+      ]
+    }
+  ],
+  "/InfraStack/Service/Service": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "ServiceD69D759B"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "...new FargateService2 in aws-cdk-lib...",
+        "new InfraStack (C:\\Source\\AIChatApi\\infra\\dist\\stack.js:46:25)",
+        "<anonymous> (C:\\Source\\AIChatApi\\infra\\dist\\bin\\app.js:7:1)",
+        "...node internals..."
+      ]
+    }
+  ],
+  "/InfraStack/Service/ScalingRole": [
+    {
+      "type": "aws:cdk:analytics:construct",
+      "data": "*"
+    }
+  ],
+  "/InfraStack/BuildkiteAgentRole/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "BuildkiteAgentRole572E6B86"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "...new Role2 in aws-cdk-lib...",
+        "new InfraStack (C:\\Source\\AIChatApi\\infra\\dist\\stack.js:58:27)",
+        "<anonymous> (C:\\Source\\AIChatApi\\infra\\dist\\bin\\app.js:7:1)",
+        "...node internals..."
+      ]
+    }
+  ],
+  "/InfraStack/BuildkiteAgentRole/DefaultPolicy": [
+    {
+      "type": "aws:cdk:analytics:construct",
+      "data": "*"
+    },
+    {
+      "type": "aws:cdk:analytics:method",
+      "data": {
+        "attachToRole": [
+          "*"
+        ]
+      }
+    },
+    {
+      "type": "aws:cdk:analytics:method",
+      "data": {
+        "attachToRole": [
+          "*"
+        ]
+      }
+    },
+    {
+      "type": "aws:cdk:analytics:method",
+      "data": {
+        "addStatements": [
+          {}
+        ]
+      }
+    }
+  ],
+  "/InfraStack/BuildkiteAgentSg/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "BuildkiteAgentSgCF0560B2"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "...new SecurityGroup2 in aws-cdk-lib...",
+        "new InfraStack (C:\\Source\\AIChatApi\\infra\\dist\\stack.js:70:25)",
+        "<anonymous> (C:\\Source\\AIChatApi\\infra\\dist\\bin\\app.js:7:1)",
+        "...node internals..."
+      ]
+    }
+  ],
+  "/InfraStack/BuildkiteAgentAsg/InstanceProfile": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "BuildkiteAgentAsgInstanceProfileA586C596"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "...new AutoScalingGroup2 in aws-cdk-lib...",
+        "new InfraStack (C:\\Source\\AIChatApi\\infra\\dist\\stack.js:86:9)",
+        "<anonymous> (C:\\Source\\AIChatApi\\infra\\dist\\bin\\app.js:7:1)",
+        "...node internals..."
+      ]
+    }
+  ],
+  "/InfraStack/BuildkiteAgentAsg/LaunchTemplate": [
+    {
+      "type": "aws:cdk:analytics:construct",
+      "data": {
+        "machineImage": "*",
+        "instanceType": "*",
+        "detailedMonitoring": false,
+        "securityGroup": "*",
+        "userData": "*",
+        "associatePublicIpAddress": "*",
+        "spotOptions": "*",
+        "blockDevices": "*",
+        "instanceProfile": "*",
+        "keyPair": "*"
+      }
+    }
+  ],
+  "/InfraStack/BuildkiteAgentAsg/ASG": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "BuildkiteAgentAsgASG2C77D4EC"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "...new AutoScalingGroup2 in aws-cdk-lib...",
+        "new InfraStack (C:\\Source\\AIChatApi\\infra\\dist\\stack.js:86:9)",
+        "<anonymous> (C:\\Source\\AIChatApi\\infra\\dist\\bin\\app.js:7:1)",
+        "...node internals..."
+      ]
+    }
+  ],
+  "/InfraStack/CDKMetadata/Default": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "CDKMetadata"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "...aws-cdk-lib, node internals...",
+        "(no user code in 10 frames, use --stack-trace-limit to capture more)"
+      ]
+    }
+  ],
+  "/InfraStack/TaskDef/TaskRole/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "TaskDefTaskRole1EDB4A67"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "...new FargateTaskDefinition2 in aws-cdk-lib...",
+        "new InfraStack (C:\\Source\\AIChatApi\\infra\\dist\\stack.js:25:25)",
+        "<anonymous> (C:\\Source\\AIChatApi\\infra\\dist\\bin\\app.js:7:1)",
+        "...node internals..."
+      ]
+    }
+  ],
+  "/InfraStack/TaskDef/web/LogGroup": [
+    {
+      "type": "aws:cdk:analytics:construct",
+      "data": {
+        "retention": "*"
+      }
+    }
+  ],
+  "/InfraStack/TaskDef/ExecutionRole/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "TaskDefExecutionRoleB4775C97"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "...aws-cdk-lib...",
+        "(no user code in 10 frames, use --stack-trace-limit to capture more)"
+      ]
+    }
+  ],
+  "/InfraStack/TaskDef/ExecutionRole/DefaultPolicy": [
+    {
+      "type": "aws:cdk:analytics:construct",
+      "data": "*"
+    },
+    {
+      "type": "aws:cdk:analytics:method",
+      "data": {
+        "attachToRole": [
+          "*"
+        ]
+      }
+    },
+    {
+      "type": "aws:cdk:analytics:method",
+      "data": {
+        "attachToRole": [
+          "*"
+        ]
+      }
+    },
+    {
+      "type": "aws:cdk:analytics:method",
+      "data": {
+        "addStatements": [
+          {}
+        ]
+      }
+    },
+    {
+      "type": "aws:cdk:analytics:method",
+      "data": {
+        "addStatements": [
+          {}
+        ]
+      }
+    },
+    {
+      "type": "aws:cdk:analytics:method",
+      "data": {
+        "addStatements": [
+          {}
+        ]
+      }
+    },
+    {
+      "type": "aws:cdk:analytics:method",
+      "data": {
+        "addStatements": [
+          {}
+        ]
+      }
+    },
+    {
+      "type": "aws:cdk:analytics:method",
+      "data": {
+        "addStatements": [
+          {}
+        ]
+      }
+    },
+    {
+      "type": "aws:cdk:analytics:method",
+      "data": {
+        "addStatements": [
+          {}
+        ]
+      }
+    },
+    {
+      "type": "aws:cdk:analytics:method",
+      "data": {
+        "addStatements": [
+          {}
+        ]
+      }
+    }
+  ],
+  "/InfraStack/Service/TaskCount/Target": [
+    {
+      "type": "aws:cdk:analytics:construct",
+      "data": {
+        "serviceNamespace": "ecs",
+        "scalableDimension": "*",
+        "resourceId": "*",
+        "role": "*",
+        "minCapacity": "*",
+        "maxCapacity": "*"
+      }
+    },
+    {
+      "type": "aws:cdk:analytics:method",
+      "data": {
+        "scaleToTrackMetric": [
+          "*",
+          {
+            "predefinedMetric": "*",
+            "policyName": "*",
+            "disableScaleIn": "*",
+            "targetValue": "*",
+            "scaleInCooldown": "*"
+          }
+        ]
+      }
+    }
+  ],
+  "/InfraStack/BuildkiteAgentRole/DefaultPolicy/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "BuildkiteAgentRoleDefaultPolicy6EE640D7"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "...SecretBase.grantRead in aws-cdk-lib...",
+        "new InfraStack (C:\\Source\\AIChatApi\\infra\\dist\\stack.js:69:29)",
+        "<anonymous> (C:\\Source\\AIChatApi\\infra\\dist\\bin\\app.js:7:1)"
+      ]
+    }
+  ],
+  "/InfraStack/BuildkiteAgentAsg/LaunchTemplate/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "BuildkiteAgentAsgLaunchTemplate6BF269C1"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "...new AutoScalingGroup2 in aws-cdk-lib...",
+        "new InfraStack (C:\\Source\\AIChatApi\\infra\\dist\\stack.js:86:9)",
+        "<anonymous> (C:\\Source\\AIChatApi\\infra\\dist\\bin\\app.js:7:1)",
+        "...node internals..."
+      ]
+    }
+  ],
+  "/InfraStack/TaskDef/web/LogGroup/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "TaskDefwebLogGroupC89AAFBC"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "...WrappedClass.<anonymous> in aws-cdk-lib...",
+        "new InfraStack (C:\\Source\\AIChatApi\\infra\\dist\\stack.js:29:17)",
+        "<anonymous> (C:\\Source\\AIChatApi\\infra\\dist\\bin\\app.js:7:1)"
+      ]
+    }
+  ],
+  "/InfraStack/TaskDef/ExecutionRole/DefaultPolicy/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "TaskDefExecutionRoleDefaultPolicy0DBB737A"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "...aws-cdk-lib...",
+        "(no user code in 10 frames, use --stack-trace-limit to capture more)"
+      ]
+    }
+  ],
+  "/InfraStack/Service/TaskCount/Target/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "ServiceTaskCountTarget23E25614"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "...WrappedClass.autoScaleTaskCount in aws-cdk-lib...",
+        "new InfraStack (C:\\Source\\AIChatApi\\infra\\dist\\stack.js:54:33)",
+        "<anonymous> (C:\\Source\\AIChatApi\\infra\\dist\\bin\\app.js:7:1)",
+        "...node internals..."
+      ]
+    }
+  ],
+  "/InfraStack/Service/TaskCount/Target/CpuScaling/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "ServiceTaskCountTargetCpuScalingCC8A5DF6"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "...ScalableTaskCount.scaleOnCpuUtilization in aws-cdk-lib...",
+        "new InfraStack (C:\\Source\\AIChatApi\\infra\\dist\\stack.js:55:17)",
+        "<anonymous> (C:\\Source\\AIChatApi\\infra\\dist\\bin\\app.js:7:1)",
+        "...node internals..."
+      ]
+    }
+  ]
+}
