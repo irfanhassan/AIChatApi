@@ -112,34 +112,34 @@ export class InfraStack extends cdk.Stack {
     const userData = ec2.UserData.forLinux();
     userData.addCommands(
       "set -euo pipefail",
+      "export HOME=/root",
       // Install core tools
-      "dnf install -y docker git unzip",
+      "dnf install -y docker git unzip nodejs npm",
       "systemctl enable --now docker",
-      "usermod -aG docker ec2-user",
       // Install AWS CLI v2
       'curl -fsSL "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o /tmp/awscliv2.zip',
       "unzip -q /tmp/awscliv2.zip -d /tmp && /tmp/aws/install",
-      // Install Node.js (for CDK deploy step)
-      "dnf install -y nodejs npm",
+      // Install CDK
       "npm install -g aws-cdk",
-      // Install Buildkite agent via official install script
+      // Install Buildkite agent as root
       'curl -fsSL "https://raw.githubusercontent.com/buildkite/agent/main/install.sh" | bash',
       // Configure agent token from Secrets Manager
-      `TOKEN=$(aws secretsmanager get-secret-value --secret-id /aichatapi/buildkite/agent-token --region ap-southeast-2 --query SecretString --output text)`,
-      `sed -i "s|token=\\"xxx\\"|token=\\"$TOKEN\\"|" /root/.buildkite-agent/buildkite-agent.cfg`,
-      // Create systemd service
+      "TOKEN=$(aws secretsmanager get-secret-value --secret-id /aichatapi/buildkite/agent-token --region ap-southeast-2 --query SecretString --output text)",
+      'sed -i "s|token=\\"xxx\\"|token=\\"$TOKEN\\"|" /root/.buildkite-agent/buildkite-agent.cfg',
+      // Create systemd service running as root so it has docker access
       `cat > /etc/systemd/system/buildkite-agent.service << 'EOF'
 [Unit]
 Description=Buildkite Agent
-After=network.target
+After=network.target docker.service
+Requires=docker.service
 
 [Service]
 Type=simple
 User=root
-ExecStart=/root/.buildkite-agent/bin/buildkite-agent start
-Restart=always
-RestartSec=5
 Environment=HOME=/root
+ExecStart=/root/.buildkite-agent/bin/buildkite-agent start --config /root/.buildkite-agent/buildkite-agent.cfg
+Restart=always
+RestartSec=10
 
 [Install]
 WantedBy=multi-user.target
@@ -150,7 +150,7 @@ EOF`,
 
     new autoscaling.AutoScalingGroup(this, "BuildkiteAgentAsg", {
       vpc,
-      instanceType: ec2.InstanceType.of(ec2.InstanceClass.T3, ec2.InstanceSize.MICRO),
+      instanceType: ec2.InstanceType.of(ec2.InstanceClass.T3, ec2.InstanceSize.MEDIUM),
       machineImage: ec2.MachineImage.latestAmazonLinux2023(),
       role: agentRole,
       securityGroup: agentSg,
