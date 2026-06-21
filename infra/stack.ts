@@ -112,8 +112,8 @@ export class InfraStack extends cdk.Stack {
     const userData = ec2.UserData.forLinux();
     userData.addCommands(
       "set -euo pipefail",
-      // Install Docker
-      "dnf install -y docker",
+      // Install core tools
+      "dnf install -y docker git unzip",
       "systemctl enable --now docker",
       "usermod -aG docker ec2-user",
       // Install AWS CLI v2
