@@ -401,6 +401,18 @@
         {
          "Ref": "AWS::Partition"
         },
+        ":iam::aws:policy/AmazonSSMManagedInstanceCore"
+       ]
+      ]
+     },
+     {
+      "Fn::Join": [
+       "",
+       [
+        "arn:",
+        {
+         "Ref": "AWS::Partition"
+        },
         ":iam::aws:policy/AWSCloudFormationFullAccess"
        ]
       ]
@@ -528,7 +540,7 @@
       }
      ],
      "UserData": {
-      "Fn::Base64": "#!/bin/bash\nset -euo pipefail\ndnf install -y docker\nsystemctl enable --now docker\nusermod -aG docker ec2-user\ncurl -fsSL \"https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip\" -o /tmp/awscliv2.zip\nunzip -q /tmp/awscliv2.zip -d /tmp && /tmp/aws/install\ndnf install -y nodejs npm\nnpm install -g aws-cdk\ncurl -fsSL \"https://keys.openpgp.org/vks/v1/by-fingerprint/32A37959C2FA5C3C99EFBC32A79206696452D198\" | gpg --dearmor -o /usr/share/keyrings/buildkite-agent-archive-keyring.gpg\necho \"deb [signed-by=/usr/share/keyrings/buildkite-agent-archive-keyring.gpg] https://apt.buildkite.com/buildkite-agent stable main\" > /etc/yum.repos.d/buildkite-agent.repo\ndnf install -y buildkite-agent\nTOKEN=$(aws secretsmanager get-secret-value --secret-id /aichatapi/buildkite/agent-token --region ap-southeast-2 --query SecretString --output text)\nsed -i \"s/xxx/$TOKEN/\" /etc/buildkite-agent/buildkite-agent.cfg\nsystemctl enable --now buildkite-agent"
+      "Fn::Base64": "#!/bin/bash\nset -euo pipefail\ndnf install -y docker\nsystemctl enable --now docker\nusermod -aG docker ec2-user\ncurl -fsSL \"https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip\" -o /tmp/awscliv2.zip\nunzip -q /tmp/awscliv2.zip -d /tmp && /tmp/aws/install\ndnf install -y nodejs npm\nnpm install -g aws-cdk\nmkdir -p /usr/local/lib/buildkite-agent /etc/buildkite-agent /var/log/buildkite-agent\ncurl -fsSL \"https://raw.githubusercontent.com/buildkite/agent/main/install.sh\" -o /tmp/install-buildkite.sh\nBUILDKITE_INSTALL_DIR=/usr/local/lib/buildkite-agent bash /tmp/install-buildkite.sh\nln -sf /usr/local/lib/buildkite-agent/bin/buildkite-agent /usr/local/bin/buildkite-agent\nTOKEN=$(aws secretsmanager get-secret-value --secret-id /aichatapi/buildkite/agent-token --region ap-southeast-2 --query SecretString --output text)\necho \"token=\\\"${TOKEN}\\\"\" > /etc/buildkite-agent/buildkite-agent.cfg\necho \"name=\\\"aichatapi-agent-%hostname\\\"\" >> /etc/buildkite-agent/buildkite-agent.cfg\necho \"build-path=\\\"/var/lib/buildkite-agent/builds\\\"\" >> /etc/buildkite-agent/buildkite-agent.cfg\nmkdir -p /var/lib/buildkite-agent/builds\ncat > /etc/systemd/system/buildkite-agent.service << 'EOF'\n[Unit]\nDescription=Buildkite Agent\nAfter=network.target\n\n[Service]\nType=simple\nExecStart=/usr/local/bin/buildkite-agent start --config /etc/buildkite-agent/buildkite-agent.cfg\nRestart=always\nRestartSec=5\nEnvironment=HOME=/root\n\n[Install]\nWantedBy=multi-user.target\nEOF\nsystemctl daemon-reload\nsystemctl enable --now buildkite-agent"
      }
     },
     "TagSpecifications": [
@@ -602,7 +614,7 @@
   "CDKMetadata": {
    "Type": "AWS::CDK::Metadata",
    "Properties": {
-    "Analytics": "v2:deflate64:H4sIAAAAAAAA/81WbWsbORD+LdXHomwPQ7kj31yHFkPbM7a5L6aUsTTZTK2VdHpJziz734te1vEm4VLaQvvB7O6M5tHMM49GnjWz1382f7yAO38h5OFC0b7pNwHEgcOd/9yjcM0arfEUjDu+AY8chW/6hYo+oNv17NYKdslesuETX1zraudvwbUQcAv+cIXXpCmQ0Tv2kvFnfhllGsYXRgcgje7MVjfYoLslgbsxsn7zjQAFe5UTWJiow8AJuqZfG4W7noH3sUP55sgue2YdaUEW1FyItDSXw+uaFDAXactS5cB/JJozZxR+hA7rd89Ayq1ZjSAro0gc2eWuHz5lbwggbpZakcaTLxX7vPP/cX9P7w8Q24GGFmWGJPQJdGI7zp0+kf7rHN/Cwvf1POs/8cKLPZ+2MWBrkucRzmOzlJsAATvUwU/a9luYf1ZJmatCU3pbah9AC1w5c00KB65M65v+vWnfORPtrmcOA+p7ueX40T1wFLOm36CIjsJxDDkNxpLDUrcOvV/HnFzPBOjSxWIJLiJnwmiNWda+yj1q+jfiUo5QhZwRmzOJXjiyD1Kb5MLfQ9TiZoudVRAwnwtxQxqXHbRYcahSsD1aPEEHIIXyg9Fp+pNu2eU1KI+c+XP8MVOP7goC3J9TIwgCruJekVjauZSJgOr21oS/7Xmle2XE4QrT+PYPkqp9qdYDHldA7rwTkwIHDtYqEpDQIQbjBSjSbdPf3wquxbDrmS/XRRrI3oJIO6DwKb268oo61H4klzOH3kQnxoaUeV5fO9ILsCAoHEcL/DexpNYlZNyarQNx+IDBkSha5WnioUw3HMrRkVFs1unp0uBMkk+5pWpwOWYWck3/gIrjMl/8C2OUNHen+VMEMmGCl0fOiXS7KXzdn4+JYeATTucxmOp/qPwnVfWE9s44/AZh3VqxiXuN6TD3zOfXil+klm+DZ3vBWbQyybMO0ZOYHhY0DHxdu/7UH5gySsBBhwHdwLWR2Hzxr25nr5u/mtmLL57owkUdqMNmXZ5fARAazh12CQAA"
+    "Analytics": "v2:deflate64:H4sIAAAAAAAA/81WS2/bOBD+LeWxYNTCQLFFbq6DXRhot4Zt7MUoijE5UaamSC4fyRqC/nvBhxwrCTZF20MOhqQZzseZb16eNbN3fzRvX8GdvxDycKFo3/SbAOLA4c5/7VG4Zo3WeArGHT+AR47CN/1CRR/Q7Xp2awW7ZK/Z8IUvrnWV8z/BtRBwC/5whdekKZDRO/aa8Wd+GWVqxhdGByCN7kxWL9iguyWBu9GyfvONAAV7lR1YmKjDwAm6pl8bhbuegfexQ/nhyC57Zh1pQRbUXIh0NIfD65lkMBfpyhLlwH/FmjNnFP4NHdbvnoGUW7MaQVZGkTiyy10/fMnaEEDcLLUijSddCvZ55f/jvkztLxDbgYYWZYYk9Al0IjvOnT6R/gIVP0LPzxVDboxEGC/y3IajwdYkzSOcx2IpNwECdqiDn+TzRYh/V0iZq0JTeltqH0ALXDlzTQoHrkzrm/6jaf9yJtpdzxwG1Pd1mO1H9cBRzJp+gyI6CsfR5DQxiw9L3Tr0fh2zcz0ToEsWiyS4iJwJozXmeve1D6KmfyMu5QhVyBmxOZPohSP7wLWJL/wjRC1utthZBQFzw4gb0rjsoMWKQ5WC7dHiCToAKZSfjE5rgXTLLq9BeeTMn+OPnnp0VxDgvoGNIAi4intFYmnnUiYCqtpbEz7b80j3yojDFaa57h84VfNSpQc8roDceSYmAQ4crFUkIKFDDMYLUKTbpr9fF67FsOuZL3skTWpvQaQbUPjkXj15RR1qP5LLmUNvohNjQsqgr68d6QVYEBSOowT+m0hS6hIybs3WgTh8wuBIlFrlaRSiTKsP5ajIKDbX6WmbcCbJJ99SNLgcPQs5pn9AxfGYL/qFMUqau9P8KQUyYYKXR/aJdLspfN33x0Qw8Amn8xhM1T+s/Cer6onaO+PwBwrr1opN3GtMzdwzn18rfim1vCaezQVn0cpUnnWInorpYUDDwNc160/9symjBBx0GNANXBuJzTf/5nb2rnnfzF5980QXLupAHTbr8vwO8nY3qY8JAAA="
    },
    "Metadata": {
     "aws:cdk:path": "InfraStack/CDKMetadata/Default"

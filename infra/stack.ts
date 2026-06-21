@@ -96,6 +96,7 @@ export class InfraStack extends cdk.Stack {
         iam.ManagedPolicy.fromAwsManagedPolicyName("AmazonECS_FullAccess"),
         iam.ManagedPolicy.fromAwsManagedPolicyName("AmazonS3FullAccess"),
         iam.ManagedPolicy.fromAwsManagedPolicyName("AmazonSSMReadOnlyAccess"),
+        iam.ManagedPolicy.fromAwsManagedPolicyName("AmazonSSMManagedInstanceCore"),
         iam.ManagedPolicy.fromAwsManagedPolicyName("AWSCloudFormationFullAccess"),
         iam.ManagedPolicy.fromAwsManagedPolicyName("IAMFullAccess"),
       ],
@@ -121,13 +122,29 @@ export class InfraStack extends cdk.Stack {
       // Install Node.js (for CDK deploy step)
       "dnf install -y nodejs npm",
       "npm install -g aws-cdk",
-      // Install Buildkite agent
-      'curl -fsSL "https://keys.openpgp.org/vks/v1/by-fingerprint/32A37959C2FA5C3C99EFBC32A79206696452D198" | gpg --dearmor -o /usr/share/keyrings/buildkite-agent-archive-keyring.gpg',
-      'echo "deb [signed-by=/usr/share/keyrings/buildkite-agent-archive-keyring.gpg] https://apt.buildkite.com/buildkite-agent stable main" > /etc/yum.repos.d/buildkite-agent.repo',
-      "dnf install -y buildkite-agent",
+      // Install Buildkite agent via official install script
+      'curl -fsSL "https://raw.githubusercontent.com/buildkite/agent/main/install.sh" | bash',
       // Configure agent token from Secrets Manager
       `TOKEN=$(aws secretsmanager get-secret-value --secret-id /aichatapi/buildkite/agent-token --region ap-southeast-2 --query SecretString --output text)`,
-      `sed -i "s/xxx/$TOKEN/" /etc/buildkite-agent/buildkite-agent.cfg`,
+      `sed -i "s|token=\\"xxx\\"|token=\\"$TOKEN\\"|" /root/.buildkite-agent/buildkite-agent.cfg`,
+      // Create systemd service
+      `cat > /etc/systemd/system/buildkite-agent.service << 'EOF'
+[Unit]
+Description=Buildkite Agent
+After=network.target
+
+[Service]
+Type=simple
+User=root
+ExecStart=/root/.buildkite-agent/bin/buildkite-agent start
+Restart=always
+RestartSec=5
+Environment=HOME=/root
+
+[Install]
+WantedBy=multi-user.target
+EOF`,
+      "systemctl daemon-reload",
       "systemctl enable --now buildkite-agent"
     );
 
