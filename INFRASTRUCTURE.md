@@ -119,15 +119,57 @@ All secrets are stored in Secrets Manager and injected at runtime — never in c
 
 ## Managing Costs
 
-### Stop the Buildkite agent when not building
-The EC2 t3.medium costs ~$0.0464/hour. To stop it:
-```powershell
-# Set ASG desired capacity to 0 (stops the instance, no compute cost)
-aws autoscaling update-auto-scaling-group --auto-scaling-group-name "InfraStack-BuildkiteAgentAsgASG2C77D4EC-K94Y5kzWeV30" --min-size 0 --desired-capacity 0 --region ap-southeast-2
+### Stop everything (EC2 + ECS) to save cost
 
-# Start it again when needed
-aws autoscaling update-auto-scaling-group --auto-scaling-group-name "InfraStack-BuildkiteAgentAsgASG2C77D4EC-K94Y5kzWeV30" --min-size 1 --desired-capacity 1 --region ap-southeast-2
+**Step 1 — Stop the Buildkite agent EC2 instance:**
+```powershell
+aws autoscaling update-auto-scaling-group `
+  --auto-scaling-group-name "InfraStack-BuildkiteAgentAsgASG2C77D4EC-GcWuW3mz5NDh" `
+  --min-size 0 --desired-capacity 0 `
+  --region ap-southeast-2
 ```
+
+**Step 2 — Find ECS cluster and service names:**
+```powershell
+aws ecs list-clusters --region ap-southeast-2
+aws ecs list-services --cluster <cluster-arn> --region ap-southeast-2
+```
+
+**Step 3 — Stop the Fargate service (scale to 0 tasks):**
+```powershell
+aws ecs update-service `
+  --cluster <cluster-name> `
+  --service <service-name> `
+  --desired-count 0 `
+  --region ap-southeast-2
+```
+
+### Restart everything when needed
+
+**Step 1 — Start the Buildkite agent EC2 instance:**
+```powershell
+aws autoscaling update-auto-scaling-group `
+  --auto-scaling-group-name "InfraStack-BuildkiteAgentAsgASG2C77D4EC-GcWuW3mz5NDh" `
+  --min-size 1 --desired-capacity 1 `
+  --region ap-southeast-2
+```
+
+**Step 2 — Start the Fargate service:**
+```powershell
+aws ecs update-service `
+  --cluster <cluster-name> `
+  --service <service-name> `
+  --desired-count 1 `
+  --region ap-southeast-2
+```
+
+### Or destroy everything with CDK (cheapest — no ongoing costs at all)
+```powershell
+cd C:\Source\AIChatApi\infra
+npx tsc
+npx cdk destroy --region ap-southeast-2
+```
+To recreate from scratch, follow the **Deploying from scratch** section below.
 
 ### Fargate costs
 The Fargate task (0.5 vCPU / 1GB) costs ~$0.015/hour. It auto-scales up to 4 tasks under load and scales back down.
