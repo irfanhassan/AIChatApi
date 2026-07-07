@@ -238,7 +238,7 @@
       "type": "aws:cdk:creationStack",
       "data": [
         "...new AutoScalingGroup2 in aws-cdk-lib...",
-        "new InfraStack (C:\\Source\\AIChatApi\\infra\\dist\\stack.js:103:9)"
+        "new InfraStack (C:\\Source\\AIChatApi\\infra\\dist\\stack.js:105:9)"
       ]
     }
   ],
@@ -516,7 +516,7 @@
       "type": "aws:cdk:creationStack",
       "data": [
         "...new AutoScalingGroup2 in aws-cdk-lib...",
-        "new InfraStack (C:\\Source\\AIChatApi\\infra\\dist\\stack.js:103:9)",
+        "new InfraStack (C:\\Source\\AIChatApi\\infra\\dist\\stack.js:105:9)",
         "<anonymous> (C:\\Source\\AIChatApi\\infra\\dist\\bin\\app.js:7:1)",
         "...node internals..."
       ]
@@ -548,7 +548,7 @@
       "type": "aws:cdk:creationStack",
       "data": [
         "...new AutoScalingGroup2 in aws-cdk-lib...",
-        "new InfraStack (C:\\Source\\AIChatApi\\infra\\dist\\stack.js:103:9)",
+        "new InfraStack (C:\\Source\\AIChatApi\\infra\\dist\\stack.js:105:9)",
         "<anonymous> (C:\\Source\\AIChatApi\\infra\\dist\\bin\\app.js:7:1)",
         "...node internals..."
       ]
@@ -732,7 +732,7 @@
       "type": "aws:cdk:creationStack",
       "data": [
         "...new AutoScalingGroup2 in aws-cdk-lib...",
-        "new InfraStack (C:\\Source\\AIChatApi\\infra\\dist\\stack.js:103:9)",
+        "new InfraStack (C:\\Source\\AIChatApi\\infra\\dist\\stack.js:105:9)",
         "<anonymous> (C:\\Source\\AIChatApi\\infra\\dist\\bin\\app.js:7:1)",
         "...node internals..."
       ]

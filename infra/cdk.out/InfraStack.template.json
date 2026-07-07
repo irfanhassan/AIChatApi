@@ -507,7 +507,7 @@
      "ImageId": {
       "Ref": "SsmParameterValueawsserviceamiamazonlinuxlatestal2023amikernel61x8664C96584B6F00A464EAD1953AFF4B05118Parameter"
      },
-     "InstanceType": "t3.micro",
+     "InstanceType": "t3.medium",
      "Monitoring": {
       "Enabled": false
      },
@@ -540,7 +540,7 @@
       }
      ],
      "UserData": {
-      "Fn::Base64": "#!/bin/bash\nset -euo pipefail\ndnf install -y docker\nsystemctl enable --now docker\nusermod -aG docker ec2-user\ncurl -fsSL \"https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip\" -o /tmp/awscliv2.zip\nunzip -q /tmp/awscliv2.zip -d /tmp && /tmp/aws/install\ndnf install -y nodejs npm\nnpm install -g aws-cdk\nmkdir -p /usr/local/lib/buildkite-agent /etc/buildkite-agent /var/log/buildkite-agent\ncurl -fsSL \"https://raw.githubusercontent.com/buildkite/agent/main/install.sh\" -o /tmp/install-buildkite.sh\nBUILDKITE_INSTALL_DIR=/usr/local/lib/buildkite-agent bash /tmp/install-buildkite.sh\nln -sf /usr/local/lib/buildkite-agent/bin/buildkite-agent /usr/local/bin/buildkite-agent\nTOKEN=$(aws secretsmanager get-secret-value --secret-id /aichatapi/buildkite/agent-token --region ap-southeast-2 --query SecretString --output text)\necho \"token=\\\"${TOKEN}\\\"\" > /etc/buildkite-agent/buildkite-agent.cfg\necho \"name=\\\"aichatapi-agent-%hostname\\\"\" >> /etc/buildkite-agent/buildkite-agent.cfg\necho \"build-path=\\\"/var/lib/buildkite-agent/builds\\\"\" >> /etc/buildkite-agent/buildkite-agent.cfg\nmkdir -p /var/lib/buildkite-agent/builds\ncat > /etc/systemd/system/buildkite-agent.service << 'EOF'\n[Unit]\nDescription=Buildkite Agent\nAfter=network.target\n\n[Service]\nType=simple\nExecStart=/usr/local/bin/buildkite-agent start --config /etc/buildkite-agent/buildkite-agent.cfg\nRestart=always\nRestartSec=5\nEnvironment=HOME=/root\n\n[Install]\nWantedBy=multi-user.target\nEOF\nsystemctl daemon-reload\nsystemctl enable --now buildkite-agent"
+      "Fn::Base64": "#!/bin/bash\nset -euo pipefail\nexport HOME=/root\ndnf install -y docker git unzip nodejs npm\nsystemctl enable --now docker\ncurl -fsSL \"https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip\" -o /tmp/awscliv2.zip\nunzip -q /tmp/awscliv2.zip -d /tmp && /tmp/aws/install\nnpm install -g aws-cdk\ncurl -fsSL \"https://raw.githubusercontent.com/buildkite/agent/main/install.sh\" | bash\nTOKEN=$(aws secretsmanager get-secret-value --secret-id /aichatapi/buildkite/agent-token --region ap-southeast-2 --query SecretString --output text)\nsed -i \"s|token=\\\"xxx\\\"|token=\\\"$TOKEN\\\"|\" /root/.buildkite-agent/buildkite-agent.cfg\ncat > /etc/systemd/system/buildkite-agent.service << 'EOF'\n[Unit]\nDescription=Buildkite Agent\nAfter=network.target docker.service\nRequires=docker.service\n\n[Service]\nType=simple\nUser=root\nEnvironment=HOME=/root\nExecStart=/root/.buildkite-agent/bin/buildkite-agent start --config /root/.buildkite-agent/buildkite-agent.cfg\nRestart=always\nRestartSec=10\n\n[Install]\nWantedBy=multi-user.target\nEOF\nsystemctl daemon-reload\nsystemctl enable --now buildkite-agent"
      }
     },
     "TagSpecifications": [
